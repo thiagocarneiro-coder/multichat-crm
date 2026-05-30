@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Inbox
 } from 'lucide-react';
+import DashboardCharts from './components/DashboardCharts';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Vendas Confirmadas */}
+          {/* Card 2: Vendas Fechadas */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -109,6 +110,9 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Gráficos Visuais */}
+        <DashboardCharts leads={leads || []} />
 
         {/* Table Section */}
         <div className="bg-white shadow-sm border border-slate-200 rounded-2xl overflow-hidden">
