@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createWorkspace } from '@/app/actions/workspaces';
 import { X, Building2, Link as LinkIcon, Loader2 } from 'lucide-react';
 
 export default function NewWorkspaceModal() {
@@ -40,25 +40,12 @@ export default function NewWorkspaceModal() {
     setError('');
 
     try {
-      // Verifica se slug já existe
-      const { data: existing } = await supabase
-        .from('workspaces')
-        .select('id')
-        .eq('slug', formData.slug)
-        .single();
-
-      if (existing) {
-        throw new Error('Um cliente com esse identificador (slug) já existe. Escolha outro nome.');
-      }
-
-      const { error: insertError } = await supabase
-        .from('workspaces')
-        .insert([{ name: formData.name, slug: formData.slug }]);
-
-      if (insertError) throw insertError;
+      await createWorkspace(formData.name, formData.slug);
 
       setIsOpen(false);
       setFormData({ name: '', slug: '' });
+      // A ação do servidor já chama revalidatePath, mas podemos chamar router.refresh() 
+      // para garantir que a UI local recarregue caso haja mudança.
       router.refresh();
       
     } catch (err: any) {
