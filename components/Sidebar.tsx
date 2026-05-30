@@ -7,8 +7,8 @@ import { LayoutDashboard, Users, Building2, Settings, Target } from 'lucide-reac
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Leads', href: '/dashboard/leads', icon: Users },
-  { name: 'Clientes', href: '/dashboard/workspaces', icon: Building2 },
-  { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
+  { name: 'Clientes', href: '/dashboard/clientes', icon: Building2 },
+  { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
 ];
 
 export default function Sidebar() {
