@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landing Page de Teste</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background-color: #f4f4f9;
+    }
+    .cta-button {
+      display: inline-block;
+      padding: 15px 30px;
+      font-size: 18px;
+      color: white;
+      background-color: #25D366;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .cta-button:hover {
+      background-color: #1ebe58;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bem-vindo ao Produto Incrível</h1>
+  <p>Esta é uma página de vendas fictícia para testar nosso Tracker SaaS.</p>
+  
+  <!-- Link do WhatsApp que será interceptado pelo nosso tracker -->
+  <a href="https://wa.me/5511999999999" class="cta-button" target="_blank">
+    Falar com Especialista no WhatsApp
+  </a>
+
+  <!-- Injeção do nosso Pixel de Rastreamento -->
+  <script src="/tracker.js"></script>
+</body>
+</html>
