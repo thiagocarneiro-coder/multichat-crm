@@ -2,7 +2,13 @@ import WorkspaceSelector from './WorkspaceSelector';
 import { cookies } from 'next/headers';
 import { Bell, User } from 'lucide-react';
 
-export default async function Header() {
+type Workspace = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export default async function Header({ workspaces }: { workspaces: Workspace[] }) {
   const cookieStore = await cookies();
   const activeWorkspaceId = cookieStore.get('activeWorkspaceId')?.value;
 
@@ -13,7 +19,10 @@ export default async function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        <WorkspaceSelector initialWorkspaceId={activeWorkspaceId} />
+        <WorkspaceSelector 
+          workspaces={workspaces} 
+          initialWorkspaceId={activeWorkspaceId} 
+        />
         
         <div className="h-6 w-px bg-slate-200 mx-1"></div>
         

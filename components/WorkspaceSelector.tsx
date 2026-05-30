@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { ChevronDown, Building2, Check } from 'lucide-react';
 
 type Workspace = {
@@ -11,30 +10,17 @@ type Workspace = {
   slug: string;
 };
 
-export default function WorkspaceSelector({ initialWorkspaceId }: { initialWorkspaceId?: string }) {
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+export default function WorkspaceSelector({ workspaces, initialWorkspaceId }: { workspaces: Workspace[], initialWorkspaceId?: string }) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspaceId || null);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    async function fetchWorkspaces() {
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select('id, name, slug')
-        .order('name');
-        
-      if (data && data.length > 0) {
-        setWorkspaces(data);
-        
-        // Se não tiver cookie, definir o primeiro como ativo
-        if (!activeWorkspaceId) {
-          handleSelect(data[0].id);
-        }
-      }
+    // Se não tiver cookie, mas temos workspaces, definir o primeiro como ativo
+    if (!activeWorkspaceId && workspaces && workspaces.length > 0) {
+      handleSelect(workspaces[0].id);
     }
-    fetchWorkspaces();
-  }, []);
+  }, [activeWorkspaceId, workspaces]);
 
   const handleSelect = (id: string) => {
     setActiveWorkspaceId(id);
