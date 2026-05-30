@@ -5,7 +5,7 @@ import { generateSessionCode } from '@/lib/utils';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { workspace_id, utm_source, utm_medium, utm_campaign, fbclid, gclid } = body;
+    const { workspace_id, utm_source, utm_medium, utm_campaign, fbclid, gclid, curso } = body;
     
     if (!workspace_id) {
       return NextResponse.json({ error: 'Missing workspace_id' }, { status: 400 });
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
           utm_campaign,
           fbclid,
           gclid,
+          curso,
           session_code
         }
       ])

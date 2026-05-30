@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         // 1. Busca a sessão correspondente no Supabase
         const { data: sessionData, error: sessionError } = await supabase
           .from('click_sessions')
-          .select('id, workspace_id')
+          .select('id, workspace_id, curso')
           .eq('session_code', session_code)
           .single();
 
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         if (!sessionError && sessionData) {
           const click_session_id = sessionData.id;
           const workspace_id = sessionData.workspace_id;
+          const curso = sessionData.curso;
 
           // 2. Faz o insert/upsert na tabela de leads
           const { data: leadData, error: leadError } = await supabase
@@ -42,7 +43,8 @@ export async function POST(request: Request) {
               {
                 workspace_id,
                 phone_number,
-                click_session_id
+                click_session_id,
+                curso
               }
             ], { onConflict: 'workspace_id,phone_number' })
             .select()
