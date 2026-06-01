@@ -13,13 +13,15 @@ export default async function BridgePage({
   const { slug } = await params;
 
   // Busca o workspace no banco para verificar se existe
-  const { data: workspace } = await supabase
+  const { data: workspace, error } = await supabase
     .from('workspaces')
     .select('id, name')
     .eq('slug', slug)
     .single();
 
-  if (!workspace) {
+  if (error || !workspace) {
+    console.log('Buscando slug:', slug);
+    console.error('Erro ao buscar workspace:', error);
     notFound();
   }
 
