@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import NewWorkspaceModal from './components/NewWorkspaceModal';
-import WorkspaceList from './components/WorkspaceList';
+import WorkspaceCard from './components/WorkspaceCard';
+import { Building2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,21 @@ export default async function WorkspacesPage() {
         <NewWorkspaceModal />
       </div>
 
-      <WorkspaceList initialWorkspaces={workspaces || []} />
+      <div className="space-y-4">
+        {workspaces && workspaces.length > 0 ? (
+          workspaces.map((ws) => (
+            <WorkspaceCard key={ws.id} workspace={ws} />
+          ))
+        ) : (
+          <div className="p-12 text-center flex flex-col items-center bg-white rounded-2xl border border-dashed border-slate-300">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4">
+              <Building2 className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">Nenhum cliente encontrado</h3>
+            <p className="mt-1 text-sm text-slate-500">Adicione seu primeiro cliente clicando no botão acima.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
