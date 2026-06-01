@@ -21,7 +21,6 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<'open' | 'connecting' | 'close'>('close');
-  const [mockAlert, setMockAlert] = useState(false);
 
   // Consider in production that this should be dynamic based on window.location.origin
   const appDomain = typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com';
@@ -64,7 +63,6 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       // Ajusta o prefixo base64 se já não vier em formato URI
       const qrData = res.qrcode.startsWith('data:image') ? res.qrcode : `data:image/png;base64,${res.qrcode}`;
       setQrCodeData(qrData);
-      if (res.isMock) setMockAlert(true);
     } else {
       setConnectionState('close');
       alert('Falha ao conectar: ' + res.error);
@@ -75,7 +73,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   // Polling para checar o status se estiver esperando ler o QR
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (qrCodeData && connectionState === 'connecting' && !mockAlert) {
+    if (qrCodeData && connectionState === 'connecting') {
       interval = setInterval(async () => {
         const res = await getWorkspaceConnectionState(workspace.slug);
         if (res.success && res.state === 'open') {
@@ -89,7 +87,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       }, 5000);
     }
     return () => clearInterval(interval);
-  }, [qrCodeData, connectionState, workspace.slug, mockAlert]);
+  }, [qrCodeData, connectionState, workspace.slug]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
@@ -151,12 +149,6 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                   <p className="text-sm text-slate-500">Conecte o número de atendimento do cliente escaneando o QR Code.</p>
                 </div>
               </div>
-              
-              {mockAlert && (
-                <div className="mt-4 p-3 text-xs bg-amber-50 text-amber-800 rounded-lg border border-amber-200">
-                  <span className="font-bold">Aviso Mock:</span> A Evolution API não está acessível no ambiente local. Um QR Code fictício está sendo exibido.
-                </div>
-              )}
             </div>
 
             <div className="flex flex-col items-center gap-3 min-w-[200px]">

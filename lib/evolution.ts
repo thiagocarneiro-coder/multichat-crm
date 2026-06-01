@@ -1,7 +1,7 @@
-const API_URL = process.env.EVOLUTION_API_URL;
-const API_KEY = process.env.EVOLUTION_GLOBAL_API_KEY;
-
 export async function createInstance(instanceName: string) {
+  const API_URL = process.env.EVOLUTION_API_URL;
+  const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
+
   if (!API_URL || !API_KEY) {
     throw new Error('Evolution API não configurada no .env');
   }
@@ -37,6 +37,9 @@ export async function createInstance(instanceName: string) {
 }
 
 export async function getQRCode(instanceName: string) {
+  const API_URL = process.env.EVOLUTION_API_URL;
+  const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
+
   if (!API_URL || !API_KEY) {
     throw new Error('Evolution API não configurada no .env');
   }
@@ -58,6 +61,9 @@ export async function getQRCode(instanceName: string) {
 }
 
 export async function checkConnectionState(instanceName: string) {
+  const API_URL = process.env.EVOLUTION_API_URL;
+  const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
+
   if (!API_URL || !API_KEY) {
     throw new Error('Evolution API não configurada no .env');
   }
