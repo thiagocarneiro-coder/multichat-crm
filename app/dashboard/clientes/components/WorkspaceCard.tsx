@@ -14,6 +14,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedBridge, setCopiedBridge] = useState(false);
 
   // Consider in production that this should be dynamic based on window.location.origin
   const appDomain = typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com';
@@ -33,14 +34,17 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
 
   const whatsappLink = `https://wa.me/SEU_NUMERO_AQUI?text=Olá, vim pelo anúncio! [TRACK-{{telefone}}]`;
 
-  const copyToClipboard = (text: string, type: 'script' | 'link') => {
+  const copyToClipboard = (text: string, type: 'script' | 'link' | 'bridge') => {
     navigator.clipboard.writeText(text);
     if (type === 'script') {
       setCopiedScript(true);
       setTimeout(() => setCopiedScript(false), 2000);
-    } else {
+    } else if (type === 'link') {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
+    } else if (type === 'bridge') {
+      setCopiedBridge(true);
+      setTimeout(() => setCopiedBridge(false), 2000);
     }
   };
 
@@ -96,7 +100,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
               {/* Bloco 1: Intercepção via GTM */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -135,7 +139,27 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                   <code className="text-xs text-emerald-400 flex-1 break-all">{whatsappLink}</code>
                 </div>
                 <p className="text-xs text-slate-500 mt-3">
-                  Use esta estrutura de URL no campo de destino das suas campanhas. O texto extra vai ajudar a plataforma a identificar a origem através da mensagem.
+                  Use esta estrutura de URL no campo de destino das suas campanhas se enviar direto para o WhatsApp.
+                </p>
+              </div>
+
+              {/* Bloco 3: Bridge Page Pública */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-slate-200">3. Bridge Page (Página Ponte Segura)</h4>
+                  <button 
+                    onClick={() => copyToClipboard(`${appDomain}/go/${workspace.slug}`, 'bridge')}
+                    className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
+                  >
+                    {copiedBridge ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copiedBridge ? 'Copiado' : 'Copiar'}
+                  </button>
+                </div>
+                <div className="flex items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                  <code className="text-xs text-blue-400 flex-1 break-all">{`${appDomain}/go/${workspace.slug}`}</code>
+                </div>
+                <p className="text-xs text-slate-500 mt-3">
+                  URL pública segura para usar como Destino nas campanhas do Facebook Ads caso você não possua landing page própria.
                 </p>
               </div>
             </div>
