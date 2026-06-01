@@ -3,15 +3,18 @@ export async function createInstance(instanceName: string) {
   const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
 
   if (!API_URL || !API_KEY) {
+    console.error('ERRO: Evolution API não configurada!', { API_URL, API_KEY });
     throw new Error('Evolution API não configurada no .env');
   }
+
+  console.log(`[Evolution API] Criando instância: ${instanceName} no host ${API_URL}`);
 
   // Cria a instância e configura o webhook
   const response = await fetch(`${API_URL}/instance/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      apikey: API_KEY,
+      'apikey': API_KEY,
     },
     body: JSON.stringify({
       instanceName,
@@ -35,13 +38,14 @@ export async function getQRCode(instanceName: string) {
   const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
 
   if (!API_URL || !API_KEY) {
+    console.error('ERRO: Evolution API não configurada!', { API_URL, API_KEY });
     throw new Error('Evolution API não configurada no .env');
   }
 
   const response = await fetch(`${API_URL}/instance/connect/${instanceName}`, {
     method: 'GET',
     headers: {
-      apikey: API_KEY,
+      'apikey': API_KEY,
     },
   });
 
@@ -59,13 +63,14 @@ export async function checkConnectionState(instanceName: string) {
   const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
 
   if (!API_URL || !API_KEY) {
+    console.error('ERRO: Evolution API não configurada!', { API_URL, API_KEY });
     throw new Error('Evolution API não configurada no .env');
   }
 
   const response = await fetch(`${API_URL}/instance/connectionState/${instanceName}`, {
     method: 'GET',
     headers: {
-      apikey: API_KEY,
+      'apikey': API_KEY,
     },
   });
 
