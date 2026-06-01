@@ -8,15 +8,38 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Extrai os dados do payload oficial do WhatsApp Cloud API com optional chaining
-    const messageObj = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    const phone_number = messageObj?.from;
-    const message_text = messageObj?.text?.body;
+    let phone_number = '';
+    let message_text = '';
+
+    // Verifica se o payload é da Evolution API (messages.upsert)
+    if (body?.event === 'messages.upsert' && body?.data?.message) {
+      const msgData = body.data.message;
+      
+      // Ignora mensagens enviadas pelo próprio bot/atendente
+      if (msgData?.key?.fromMe) {
+        return NextResponse.json({ status: 'ignored (fromMe)' }, { status: 200 });
+      }
+
+      const remoteJid = msgData?.key?.remoteJid || '';
+      // Remove o sufixo @s.whatsapp.net para pegar apenas o número
+      phone_number = remoteJid.split('@')[0];
+
+      const content = msgData?.message;
+      // O texto pode vir em diferentes propriedades dependendo de como foi enviado no WhatsApp
+      message_text = content?.conversation || content?.extendedTextMessage?.text || '';
+      
+    } else {
+      // Fallback para API Oficial da Meta (caso ainda use)
+      const messageObj = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      phone_number = messageObj?.from || '';
+      message_text = messageObj?.text?.body || '';
+    }
 
     if (phone_number && message_text) {
-      // Regex para capturar o código no formato [XXX-0000]
-      // A expressão pega exatamente o que está dentro dos colchetes
-      const codeRegex = /\[([A-Z]{3}-\d{4})\]/;
+      // Regex para capturar o código no formato [XXX-0000] ou similar.
+      // A expressão pega exatamente o que está dentro dos colchetes,
+      // permitindo letras, números e hifens.
+      const codeRegex = /\[([a-zA-Z0-9-]+)\]/;
       const match = message_text.match(codeRegex);
 
       if (match && match[1]) {

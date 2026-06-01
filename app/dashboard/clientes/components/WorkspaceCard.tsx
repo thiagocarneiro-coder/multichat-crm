@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle, Smartphone, QrCode, Loader2 } from 'lucide-react';
+import { connectWorkspaceWhatsApp, getWorkspaceConnectionState } from '@/app/actions/evolution';
 
 type Workspace = {
   id: string;
@@ -15,6 +16,12 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBridge, setCopiedBridge] = useState(false);
+
+  // Estados de Conexão WhatsApp
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [connectionState, setConnectionState] = useState<'open' | 'connecting' | 'close'>('close');
+  const [mockAlert, setMockAlert] = useState(false);
 
   // Consider in production that this should be dynamic based on window.location.origin
   const appDomain = typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com';
@@ -48,6 +55,42 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
     }
   };
 
+  const handleConnectWhatsApp = async () => {
+    setIsConnecting(true);
+    setConnectionState('connecting');
+    const res = await connectWorkspaceWhatsApp(workspace.slug);
+    
+    if (res.success && res.qrcode) {
+      // Ajusta o prefixo base64 se já não vier em formato URI
+      const qrData = res.qrcode.startsWith('data:image') ? res.qrcode : `data:image/png;base64,${res.qrcode}`;
+      setQrCodeData(qrData);
+      if (res.isMock) setMockAlert(true);
+    } else {
+      setConnectionState('close');
+      alert('Falha ao conectar: ' + res.error);
+    }
+    setIsConnecting(false);
+  };
+
+  // Polling para checar o status se estiver esperando ler o QR
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (qrCodeData && connectionState === 'connecting' && !mockAlert) {
+      interval = setInterval(async () => {
+        const res = await getWorkspaceConnectionState(workspace.slug);
+        if (res.success && res.state === 'open') {
+          setConnectionState('open');
+          setQrCodeData(null);
+        } else if (res.success && res.state === 'close') {
+          // Desconectou ou falhou
+          setConnectionState('close');
+          setQrCodeData(null);
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [qrCodeData, connectionState, workspace.slug, mockAlert]);
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
       <div 
@@ -74,9 +117,15 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
         </div>
         
         <div className="flex items-center gap-3">
+          {connectionState === 'open' && (
+            <span className="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 rounded-lg flex items-center gap-1.5 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              WhatsApp Conectado
+            </span>
+          )}
           <button className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2">
             <Code2 className="w-3.5 h-3.5" />
-            Instruções de Integração
+            Configurações
           </button>
           {isExpanded ? (
             <ChevronUp className="w-5 h-5 text-slate-400" />
@@ -89,6 +138,55 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       {/* Área Expandida com Instruções */}
       {isExpanded && (
         <div className="px-6 pb-6 bg-slate-50 border-t border-slate-100">
+          
+          {/* Conexão WhatsApp (Evolution API) */}
+          <div className="bg-white rounded-2xl p-6 mt-6 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-slate-900 font-bold text-lg">Conexão WhatsApp</h3>
+                  <p className="text-sm text-slate-500">Conecte o número de atendimento do cliente escaneando o QR Code.</p>
+                </div>
+              </div>
+              
+              {mockAlert && (
+                <div className="mt-4 p-3 text-xs bg-amber-50 text-amber-800 rounded-lg border border-amber-200">
+                  <span className="font-bold">Aviso Mock:</span> A Evolution API não está acessível no ambiente local. Um QR Code fictício está sendo exibido.
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center gap-3 min-w-[200px]">
+              {connectionState === 'open' ? (
+                <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-100 w-full">
+                  <Check className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-emerald-800">Conectado com Sucesso</p>
+                </div>
+              ) : qrCodeData ? (
+                <div className="text-center">
+                  <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm mb-2">
+                    <img src={qrCodeData} alt="WhatsApp QR Code" className="w-40 h-40 object-contain" />
+                  </div>
+                  <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Aguardando leitura...
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={handleConnectWhatsApp}
+                  disabled={isConnecting}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isConnecting ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
+                  {isConnecting ? 'Gerando...' : 'Gerar QR Code'}
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="bg-slate-900 rounded-2xl p-6 text-slate-300 mt-6 border border-slate-800 shadow-xl">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
@@ -139,7 +237,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                   <code className="text-xs text-emerald-400 flex-1 break-all">{whatsappLink}</code>
                 </div>
                 <p className="text-xs text-slate-500 mt-3">
-                  Use esta estrutura de URL no campo de destino das suas campanhas se enviar direto para o WhatsApp.
+                  Use esta estrutura de URL no campo de destino das suas campanhas se enviar direto para o WhatsApp sem Bridge Page.
                 </p>
               </div>
 
