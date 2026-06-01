@@ -21,6 +21,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<'open' | 'connecting' | 'close'>('close');
+  const [activeInstanceName, setActiveInstanceName] = useState<string | null>(null);
 
   // Consider in production that this should be dynamic based on window.location.origin
   const appDomain = typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com';
@@ -59,10 +60,11 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
     setConnectionState('connecting');
     const res = await connectWorkspaceWhatsApp(workspace.slug);
     
-    if (res.success && res.qrcode) {
+    if (res.success && res.qrcode && res.instanceName) {
       // Ajusta o prefixo base64 se já não vier em formato URI
       const qrData = res.qrcode.startsWith('data:image') ? res.qrcode : `data:image/png;base64,${res.qrcode}`;
       setQrCodeData(qrData);
+      setActiveInstanceName(res.instanceName);
     } else {
       setConnectionState('close');
       alert('Falha ao conectar: ' + res.error);
@@ -73,9 +75,9 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   // Polling para checar o status se estiver esperando ler o QR
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (qrCodeData && connectionState === 'connecting') {
+    if (qrCodeData && connectionState === 'connecting' && activeInstanceName) {
       interval = setInterval(async () => {
-        const res = await getWorkspaceConnectionState(workspace.slug);
+        const res = await getWorkspaceConnectionState(activeInstanceName);
         if (res.success && res.state === 'open') {
           setConnectionState('open');
           setQrCodeData(null);
@@ -87,7 +89,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       }, 5000);
     }
     return () => clearInterval(interval);
-  }, [qrCodeData, connectionState, workspace.slug]);
+  }, [qrCodeData, connectionState, activeInstanceName]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all">

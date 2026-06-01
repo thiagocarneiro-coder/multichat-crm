@@ -4,13 +4,15 @@ import { createInstance, getQRCode, checkConnectionState } from '@/lib/evolution
 
 export async function connectWorkspaceWhatsApp(workspaceSlug: string) {
   try {
+    const instanceName = `${workspaceSlug}-${Date.now()}`;
+
     // 1. Tenta criar a instância (ignora se já existir)
-    await createInstance(workspaceSlug);
+    await createInstance(instanceName);
     
     // 2. Busca o QR Code gerado
-    const base64Qr = await getQRCode(workspaceSlug);
+    const base64Qr = await getQRCode(instanceName);
     
-    return { success: true, qrcode: base64Qr };
+    return { success: true, qrcode: base64Qr, instanceName };
   } catch (error: any) {
     console.error('Erro ao conectar WhatsApp:', error);
     

@@ -16,13 +16,7 @@ export async function createInstance(instanceName: string) {
     body: JSON.stringify({
       instanceName,
       qrcode: true,
-      integration: 'WHATSAPP-BAILEYS',
-      webhook_whatsapp: {
-        // AppDomain ou VERCEL_URL. Se não existir, usamos um domínio provisório apenas para não falhar
-        url: process.env.NEXT_PUBLIC_APP_URL || 'https://seusaas.com/api/whatsapp/webhook',
-        enabled: true,
-        events: ['MESSAGES_UPSERT']
-      }
+      integration: 'WHATSAPP-BAILEYS'
     }),
   });
 
