@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle, Smartphone, QrCode, Loader2 } from 'lucide-react';
-import { connectWorkspaceWhatsApp, getWorkspaceConnectionState } from '@/app/actions/evolution';
 
 type Workspace = {
   id: string;
@@ -58,16 +57,29 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const handleConnectWhatsApp = async () => {
     setIsConnecting(true);
     setConnectionState('connecting');
-    const res = await connectWorkspaceWhatsApp(workspace.slug);
-    
-    if (res.success && res.qrcode && res.instanceName) {
-      // Ajusta o prefixo base64 se já não vier em formato URI
-      const qrData = res.qrcode.startsWith('data:image') ? res.qrcode : `data:image/png;base64,${res.qrcode}`;
-      setQrCodeData(qrData);
-      setActiveInstanceName(res.instanceName);
-    } else {
+    try {
+      const instanceName = `${workspace.slug}-${Date.now()}`;
+      
+      const response = await fetch('/api/whatsapp/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instanceName })
+      });
+      
+      const res = await response.json();
+
+      if (response.ok && res.success && res.qrcode && res.instanceName) {
+        // Ajusta o prefixo base64 se já não vier em formato URI
+        const qrData = res.qrcode.startsWith('data:image') ? res.qrcode : `data:image/png;base64,${res.qrcode}`;
+        setQrCodeData(qrData);
+        setActiveInstanceName(res.instanceName);
+      } else {
+        setConnectionState('close');
+        alert('Falha ao conectar: ' + (res.error || 'Erro desconhecido'));
+      }
+    } catch (error: any) {
       setConnectionState('close');
-      alert('Falha ao conectar: ' + res.error);
+      alert('Falha ao conectar: ' + error.message);
     }
     setIsConnecting(false);
   };
@@ -77,14 +89,21 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
     let interval: NodeJS.Timeout;
     if (qrCodeData && connectionState === 'connecting' && activeInstanceName) {
       interval = setInterval(async () => {
-        const res = await getWorkspaceConnectionState(activeInstanceName);
-        if (res.success && res.state === 'open') {
-          setConnectionState('open');
-          setQrCodeData(null);
-        } else if (res.success && res.state === 'close') {
-          // Desconectou ou falhou
-          setConnectionState('close');
-          setQrCodeData(null);
+        try {
+          const response = await fetch(`/api/whatsapp/status?instanceName=${activeInstanceName}`);
+          const res = await response.json();
+          
+          if (response.ok && res.success) {
+            if (res.state === 'open') {
+              setConnectionState('open');
+              setQrCodeData(null);
+            } else if (res.state === 'close') {
+              setConnectionState('close');
+              setQrCodeData(null);
+            }
+          }
+        } catch (error) {
+          console.error("Erro no polling:", error);
         }
       }, 5000);
     }
