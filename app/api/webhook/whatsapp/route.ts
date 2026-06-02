@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +37,22 @@ export async function POST(request: Request) {
     console.log('📱 De:', remoteJid);
     console.log('💬 Texto:', textMessage);
     console.log('=============================================\n');
+
+    // Integração Gemini
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      
+      const prompt = `Você é um assistente virtual de uma agência de audiovisual chamada Ursa Filme. Um cliente enviou a seguinte mensagem: "${textMessage}". Responda de forma profissional e curta.`;
+      
+      const result = await model.generateContent(prompt);
+      const respostaIA = result.response.text();
+      
+      console.log('🧠 RESPOSTA DA IA:', respostaIA);
+    } else {
+      console.log('⚠️ GEMINI_API_KEY não encontrada. Pulando processamento de IA.');
+    }
 
     // Retorno obrigatório de 200 OK para a Evolution API não re-enviar o webhook
     return NextResponse.json({ success: true }, { status: 200 });
