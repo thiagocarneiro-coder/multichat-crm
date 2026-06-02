@@ -47,34 +47,49 @@ export async function POST(request: Request) {
     // Tenta extrair da própria criação (Evolution V1/algumas V2)
     let base64 = createData?.qrcode?.base64 || createData?.base64 || createData?.hash?.qrcode;
 
-    // Etapa 2: Se não veio na criação, tenta no endpoint de connect
+    // Etapa 2: Se não veio na criação, tenta no endpoint de connect com polling
     if (!base64) {
-      console.log("[Evolution API] QR Code não veio no create. Aguardando 1.5s para chamar /instance/connect...");
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log("[Evolution API] QR Code não veio no create. Iniciando polling...");
+      let attempts = 0;
+      const maxAttempts = 5;
 
-      const qrResponse = await fetch(`${API_URL}/instance/connect/${uniqueInstanceName}`, {
-        method: 'GET',
-        headers: {
-          'apikey': API_KEY,
-        },
-      });
+      while (attempts < maxAttempts && !base64) {
+        attempts++;
+        console.log(`[Evolution API] Polling tentativa ${attempts}/${maxAttempts}... aguardando 2s`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log("STATUS DA EVOLUTION (CONNECT/QR):", qrResponse.status);
+        try {
+          const qrResponse = await fetch(`${API_URL}/instance/connect/${uniqueInstanceName}`, {
+            method: 'GET',
+            headers: { 'apikey': API_KEY },
+          });
 
-      const qrText = await qrResponse.text();
-      let qrData: any = {};
-      try {
-        qrData = JSON.parse(qrText);
-        console.log('DADOS DO QR CODE DA EVOLUTION (CONNECT):', qrData);
-      } catch (e) {
-        console.log('ERRO PARSING QR CODE (CONNECT):', qrText);
+          if (qrResponse.ok) {
+            const qrText = await qrResponse.text();
+            try {
+              const qrData = JSON.parse(qrText);
+              console.log(`[Evolution API] DADOS DO CONNECT (Tentativa ${attempts}):`, qrData);
+              
+              base64 = qrData?.qrcode?.base64 || qrData?.base64 || qrData?.base64qr;
+              
+              if (base64) {
+                console.log("[Evolution API] QR Code obtido com sucesso!");
+                break;
+              }
+            } catch (e) {
+              console.log('ERRO PARSING QR CODE (CONNECT):', qrText);
+            }
+          } else {
+             console.log(`STATUS DA EVOLUTION (CONNECT) [${attempts}]:`, qrResponse.status);
+          }
+        } catch (e) {
+          console.log(`Erro no fetch do connect na tentativa ${attempts}:`, e);
+        }
       }
 
-      if (!qrResponse.ok) {
-        return NextResponse.json({ error: 'Falha ao obter QR Code', details: qrData || qrText }, { status: 500 });
+      if (!base64) {
+        return NextResponse.json({ error: 'Tempo esgotado ao aguardar o QR Code da Evolution API. Tente novamente.' }, { status: 504 });
       }
-
-      base64 = qrData?.qrcode?.base64 || qrData?.base64 || qrData?.base64qr;
     }
     
     return NextResponse.json({ success: true, base64: base64, instanceName: uniqueInstanceName }, { status: 200 });
