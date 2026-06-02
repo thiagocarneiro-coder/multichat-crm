@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         await new Promise(resolve => setTimeout(resolve, 3000));
 
         try {
-          const connectUrl = `${API_URL}/instance/connect/${uniqueInstanceName}?t=${Date.now()}`;
+          const connectUrl = `${API_URL}/instance/connect/${uniqueInstanceName}?base64=false&t=${Date.now()}`;
           const qrResponse = await fetch(connectUrl, {
             method: 'GET',
             headers: { 'apikey': API_KEY },
@@ -71,7 +71,12 @@ export async function POST(request: Request) {
               const qrData = JSON.parse(qrText);
               console.log(`[Evolution API] DADOS DO CONNECT (Tentativa ${attempts}):`, qrData);
               
-              base64 = qrData?.qrcode?.base64 || qrData?.base64 || qrData?.base64qr;
+              const rawCode = qrData?.qrcode?.code || qrData?.code;
+              if (rawCode) {
+                console.log(`[Evolution API] QR Code em Texto Bruto (Bypass Canvas):`, rawCode);
+              }
+              
+              base64 = qrData?.qrcode?.base64 || qrData?.base64 || qrData?.base64qr || rawCode;
               
               if (base64) {
                 console.log("[Evolution API] QR Code obtido com sucesso!");
