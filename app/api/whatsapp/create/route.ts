@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     console.log(`[Evolution API] Criando instância única: ${uniqueInstanceName} no host ${API_URL}`);
 
-    // 1. Cria a instância
+    // Etapa 1: Cria a instância
     const createResponse = await fetch(`${API_URL}/instance/create`, {
       method: 'POST',
       headers: {
@@ -31,46 +31,51 @@ export async function POST(request: Request) {
 
     console.log("STATUS DA EVOLUTION (CREATE):", createResponse.status);
 
-    if (!createResponse.ok) {
-      const errText = await createResponse.text();
-      let errorData = errText;
+    let createData: any = {};
+    const createText = await createResponse.text();
+    try {
+      createData = JSON.parse(createText);
+      console.log("RESPOSTA DA EVOLUTION (CREATE):", createData);
+    } catch (e) {
+      console.log("RESPOSTA TEXTO DA EVOLUTION (CREATE):", createText);
+    }
+
+    if (!createResponse.ok && !createText.includes('already exists')) {
+      return NextResponse.json({ error: 'Falha ao criar instância', details: createData || createText }, { status: 500 });
+    }
+
+    // Tenta extrair da própria criação (Evolution V1/algumas V2)
+    let base64 = createData?.qrcode?.base64 || createData?.base64 || createData?.hash?.qrcode;
+
+    // Etapa 2: Se não veio na criação, tenta no endpoint de connect
+    if (!base64) {
+      console.log("[Evolution API] QR Code não veio no create. Aguardando 1.5s para chamar /instance/connect...");
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const qrResponse = await fetch(`${API_URL}/instance/connect/${uniqueInstanceName}`, {
+        method: 'GET',
+        headers: {
+          'apikey': API_KEY,
+        },
+      });
+
+      console.log("STATUS DA EVOLUTION (CONNECT/QR):", qrResponse.status);
+
+      const qrText = await qrResponse.text();
+      let qrData: any = {};
       try {
-        errorData = JSON.parse(errText);
+        qrData = JSON.parse(qrText);
+        console.log('DADOS DO QR CODE DA EVOLUTION (CONNECT):', qrData);
       } catch (e) {
-        // failed to parse JSON, keep as text
+        console.log('ERRO PARSING QR CODE (CONNECT):', qrText);
       }
-      console.log("ERRO DA EVOLUTION (CREATE):", errorData);
-      
-      if (!errText.includes('already exists')) {
-        return NextResponse.json({ error: 'Falha ao criar instância', details: errorData }, { status: 500 });
+
+      if (!qrResponse.ok) {
+        return NextResponse.json({ error: 'Falha ao obter QR Code', details: qrData || qrText }, { status: 500 });
       }
+
+      base64 = qrData?.qrcode?.base64 || qrData?.base64 || qrData?.base64qr;
     }
-
-    // 2. Busca o QR Code gerado
-    const qrResponse = await fetch(`${API_URL}/instance/connect/${uniqueInstanceName}`, {
-      method: 'GET',
-      headers: {
-        'apikey': API_KEY,
-      },
-    });
-
-    console.log("STATUS DA EVOLUTION (CONNECT/QR):", qrResponse.status);
-
-    if (!qrResponse.ok) {
-      const errText = await qrResponse.text();
-      let errorData = errText;
-      try {
-        errorData = JSON.parse(errText);
-      } catch (e) { }
-      console.log("ERRO DA EVOLUTION (CONNECT/QR):", errorData);
-      
-      return NextResponse.json({ error: 'Falha ao obter QR Code', details: errorData }, { status: 500 });
-    }
-
-    const qrData = await qrResponse.json();
-    console.log('DADOS DO QR CODE DA EVOLUTION:', qrData);
-    
-    const base64 = qrData?.qrcode?.base64 || qrData?.base64;
     
     return NextResponse.json({ success: true, base64: base64, instanceName: uniqueInstanceName }, { status: 200 });
 
