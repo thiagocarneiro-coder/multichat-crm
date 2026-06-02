@@ -4,10 +4,13 @@ export async function POST(request: Request) {
   try {
     const { instanceName } = await request.json();
 
-    const API_URL = 'http://3.18.103.80:8080';
-    const API_KEY = '@Narutogoku1';
+    const API_URL = process.env.EVOLUTION_API_URL;
+    const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
 
-    console.log('Testando API:', API_URL, 'com chave:', API_KEY);
+    if (!API_URL || !API_KEY) {
+      console.error('ERRO: Evolution API não configurada!', { API_URL, API_KEY });
+      return NextResponse.json({ error: 'Evolution API não configurada no .env' }, { status: 500 });
+    }
 
     // 1. Cria a instância
     const createResponse = await fetch(`${API_URL}/instance/create`, {
