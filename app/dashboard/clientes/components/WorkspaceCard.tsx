@@ -68,14 +68,21 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       
       const res = await response.json();
 
-      if (response.ok && res.success && res.qrcode && res.instanceName) {
+      if (response.ok && res.success && res.instanceName) {
+        if (!res.base64) {
+          setConnectionState('close');
+          alert('A Evolution API retornou sucesso, mas não enviou o QR Code (base64 vazio). Verifique os logs do backend.');
+          setIsConnecting(false);
+          return;
+        }
+        
         // Ajusta o prefixo base64 se já não vier em formato URI
-        const qrData = res.qrcode.startsWith('data:image') ? res.qrcode : `data:image/png;base64,${res.qrcode}`;
+        const qrData = res.base64.startsWith('data:image') ? res.base64 : `data:image/png;base64,${res.base64}`;
         setQrCodeData(qrData);
         setActiveInstanceName(res.instanceName);
       } else {
         setConnectionState('close');
-        alert('Falha ao conectar: ' + (res.error || 'Erro desconhecido'));
+        alert('Falha ao conectar: ' + (res.error || 'Erro na resposta da API'));
       }
     } catch (error: any) {
       setConnectionState('close');

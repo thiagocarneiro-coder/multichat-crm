@@ -68,7 +68,11 @@ export async function POST(request: Request) {
     }
 
     const qrData = await qrResponse.json();
-    return NextResponse.json({ success: true, qrcode: qrData.base64, instanceName: uniqueInstanceName }, { status: 200 });
+    console.log('DADOS DO QR CODE DA EVOLUTION:', qrData);
+    
+    const base64 = qrData?.qrcode?.base64 || qrData?.base64;
+    
+    return NextResponse.json({ success: true, base64: base64, instanceName: uniqueInstanceName }, { status: 200 });
 
   } catch (error: any) {
     console.error('Erro ao conectar WhatsApp na API route:', error);
