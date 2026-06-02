@@ -51,12 +51,12 @@ export async function POST(request: Request) {
     if (!base64) {
       console.log("[Evolution API] QR Code não veio no create. Iniciando polling...");
       let attempts = 0;
-      const maxAttempts = 5;
+      const maxAttempts = 15;
 
       while (attempts < maxAttempts && !base64) {
         attempts++;
-        console.log(`[Evolution API] Polling tentativa ${attempts}/${maxAttempts}... aguardando 2s`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`[Evolution API] Polling tentativa ${attempts}/${maxAttempts}... aguardando 3s`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         try {
           const qrResponse = await fetch(`${API_URL}/instance/connect/${uniqueInstanceName}`, {
