@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         await new Promise(resolve => setTimeout(resolve, 3000));
 
         try {
-          const connectUrl = `${API_URL}/instance/connect/${uniqueInstanceName}?base64=false&t=${Date.now()}`;
+          const connectUrl = `${API_URL}/instance/connect/${uniqueInstanceName}?t=${Date.now()}`;
           const qrResponse = await fetch(connectUrl, {
             method: 'GET',
             headers: { 'apikey': API_KEY },
