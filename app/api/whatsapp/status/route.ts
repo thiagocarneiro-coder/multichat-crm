@@ -8,12 +8,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'instanceName é obrigatório' }, { status: 400 });
   }
 
-  const API_URL = process.env.EVOLUTION_API_URL;
-  const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;
-
-  if (!API_URL || !API_KEY) {
-    return NextResponse.json({ error: 'Evolution API não configurada no .env' }, { status: 500 });
-  }
+  const API_URL = 'http://3.18.103.80:8080';
+  const API_KEY = '@Narutogoku1';
 
   try {
     const response = await fetch(`${API_URL}/instance/connectionState/${instanceName}`, {
