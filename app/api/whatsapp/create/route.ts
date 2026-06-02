@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { instanceName: baseInstanceName } = await request.json();
-    const uniqueInstanceName = `wp-${Date.now()}`;
+    const uniqueInstanceName = baseInstanceName;
 
     const API_URL = process.env.EVOLUTION_API_URL;
     const API_KEY = process.env.EVOLUTION_GLOBAL_KEY;

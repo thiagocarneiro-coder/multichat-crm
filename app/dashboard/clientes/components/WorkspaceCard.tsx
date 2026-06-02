@@ -91,13 +91,36 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
     setIsConnecting(false);
   };
 
+  // Checagem de status no carregamento inicial
+  useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const response = await fetch(`/api/whatsapp/status?slug=${workspace.slug}`);
+        const res = await response.json();
+        
+        if (response.ok && res.success) {
+          if (res.state === 'open') {
+            setConnectionState('open');
+            if (res.instanceName) setActiveInstanceName(res.instanceName);
+          } else if (res.state === 'close') {
+            setConnectionState('close');
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao checar status inicial:", error);
+      }
+    };
+    
+    checkInitialStatus();
+  }, [workspace.slug]);
+
   // Polling para checar o status se estiver esperando ler o QR
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (qrCodeData && connectionState === 'connecting' && activeInstanceName) {
       interval = setInterval(async () => {
         try {
-          const response = await fetch(`/api/whatsapp/status?instanceName=${activeInstanceName}`);
+          const response = await fetch(`/api/whatsapp/status?slug=${workspace.slug}`);
           const res = await response.json();
           
           if (response.ok && res.success) {
@@ -115,7 +138,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       }, 5000);
     }
     return () => clearInterval(interval);
-  }, [qrCodeData, connectionState, activeInstanceName]);
+  }, [qrCodeData, connectionState, activeInstanceName, workspace.slug]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
