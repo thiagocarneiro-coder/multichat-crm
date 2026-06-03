@@ -50,6 +50,37 @@ export async function POST(request: Request) {
       const respostaIA = result.response.text();
       
       console.log('🧠 RESPOSTA DA IA:', respostaIA);
+
+      // Envia a resposta de volta para o cliente via Evolution API
+      const instanceName = body.instance;
+      const evolutionApiUrl = process.env.EVOLUTION_API_URL;
+      const evolutionApiKey = process.env.EVOLUTION_GLOBAL_KEY;
+
+      if (evolutionApiUrl && evolutionApiKey && instanceName) {
+        try {
+          const sendResponse = await fetch(`${evolutionApiUrl}/message/sendText/${instanceName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evolutionApiKey
+            },
+            body: JSON.stringify({
+              number: remoteJid,
+              text: respostaIA
+            })
+          });
+
+          if (sendResponse.ok) {
+            console.log('✅ Mensagem enviada com sucesso para o WhatsApp!');
+          } else {
+            console.error('❌ Falha ao enviar mensagem para WhatsApp. Status:', sendResponse.status);
+          }
+        } catch (sendError) {
+          console.error('❌ Erro no fetch de envio da mensagem:', sendError);
+        }
+      } else {
+        console.warn('⚠️ Credenciais da Evolution API ou instanceName ausentes. Resposta não enviada.');
+      }
     } else {
       console.log('⚠️ GEMINI_API_KEY não encontrada. Pulando processamento de IA.');
     }
