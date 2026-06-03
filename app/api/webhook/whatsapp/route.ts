@@ -46,8 +46,10 @@ export async function POST(request: Request) {
       
       const prompt = `Você é um assistente virtual de uma agência de audiovisual chamada Ursa Filme. Um cliente enviou a seguinte mensagem: "${textMessage}". Responda de forma profissional e curta.`;
       
-      const result = await model.generateContent(prompt);
-      const respostaIA = result.response.text();
+      // Bypass temporário por conta de rate limit da API do Google (429)
+      // const result = await model.generateContent(prompt);
+      // const respostaIA = result.response.text();
+      const respostaIA = "🚀 *Teste do Sistema:* A ponte de envio está 100% operacional! Ursa Filme conectada.";
       
       console.log('🧠 RESPOSTA DA IA:', respostaIA);
 

@@ -6,7 +6,7 @@ async function simulateWebhook() {
     "instance": "nome-da-sua-instancia",
     "data": {
       "key": {
-        "remoteJid": "5511999999999@s.whatsapp.net",
+        "remoteJid": "5531928324668@s.whatsapp.net",
         "fromMe": false
       },
       "message": {
