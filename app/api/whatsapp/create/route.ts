@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         instanceName: uniqueInstanceName,
-        integration: 'WHATSAPP-BAILEYS'
+        qrcode: true
       }),
     });
 
