@@ -18,6 +18,7 @@ export async function POST(request: Request) {
 
     const remoteJid = data.key.remoteJid;
     const phoneNumber = remoteJid.split('@')[0];
+    const pushName = data.pushName || phoneNumber;
     const textMessage = data.message?.conversation || data.message?.extendedTextMessage?.text || "";
 
     if (!textMessage.trim()) {
@@ -26,11 +27,44 @@ export async function POST(request: Request) {
 
     console.log('\n=============================================');
     console.log('🟢 NOVA MENSAGEM RECEBIDA:');
-    console.log('📱 De:', remoteJid);
+    console.log('📱 De:', remoteJid, `(${pushName})`);
     console.log('💬 Texto:', textMessage);
     console.log('=============================================\n');
 
-    // Integração Gemini com Classificação Semântica
+    // 1. Upsert do Contato no Supabase
+    let contactId = null;
+    const { data: contactData, error: contactError } = await supabase
+      .from('contacts')
+      .upsert({
+        phone_number: phoneNumber,
+        name: pushName,
+        last_message: textMessage,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'phone_number' })
+      .select('id, status')
+      .single();
+
+    if (contactError) {
+      console.error('❌ Erro ao upsertar contato:', contactError);
+    } else if (contactData) {
+      contactId = contactData.id;
+      
+      // Incrementa unread apenas na chegada da mensagem do cliente (antes do bot responder)
+      try {
+        await supabase.rpc('increment_unread', { row_id: contactId });
+      } catch (err) {
+         // Fallback se a função RPC não existir (apenas para evitar crash)
+      }
+      
+      // 2. Insere a mensagem do cliente
+      await supabase.from('messages').insert({
+        contact_id: contactId,
+        sender: 'client',
+        text: textMessage
+      });
+    }
+
+    // 3. Integração Gemini com Classificação Semântica
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -43,10 +77,10 @@ export async function POST(request: Request) {
 Um cliente enviou a seguinte mensagem: "${textMessage}". 
 
 Atue como atendente e como classificador de funil de vendas. Analise a intenção da mensagem do cliente e classifique-o ESTRITAMENTE em uma destas categorias:
-- "curioso": perguntas vagas, sem intenção clara de fechamento ou orçamento imediato.
-- "em_negociacao": pediu orçamento, está discutindo escopo de projeto, prazos ou valores.
-- "comprou": fechou contrato, aprovou a proposta ou realizou o pagamento.
-- "nao_responde": abandonou o fluxo (use apenas se o contexto exigir, mas geralmente você deve focar nas 3 acima).
+- "CURIOSO": perguntas vagas, sem intenção clara de fechamento ou orçamento imediato.
+- "NEGOCIACAO": pediu orçamento, está discutindo escopo de projeto, prazos ou valores.
+- "VENDA_FECHADA": fechou contrato, aprovou a proposta ou realizou o pagamento.
+- "NAO_RESPONDE": abandonou o fluxo (use apenas se o contexto exigir, mas geralmente você deve focar nas 3 acima).
 
 Retorne OBRIGATORIAMENTE um objeto JSON com as seguintes chaves:
 {
@@ -57,13 +91,13 @@ Retorne OBRIGATORIAMENTE um objeto JSON com as seguintes chaves:
       const result = await model.generateContent(prompt);
       const rawText = result.response.text();
       
-      let statusDetectado = 'novo';
+      let statusDetectado = 'NOVO';
       let respostaIA = '';
 
       try {
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         const parsedJSON = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
-        statusDetectado = parsedJSON.status_detectado || 'novo';
+        statusDetectado = parsedJSON.status_detectado || 'NOVO';
         respostaIA = parsedJSON.resposta_texto || 'Desculpe, não consegui processar o pedido.';
       } catch (e) {
         console.error('Erro ao parsear JSON do Gemini:', e);
@@ -73,16 +107,29 @@ Retorne OBRIGATORIAMENTE um objeto JSON com as seguintes chaves:
       console.log('🧠 CLASSIFICAÇÃO DA IA:', statusDetectado);
       console.log('🧠 RESPOSTA DA IA:', respostaIA);
 
-      // Atualiza o status no Supabase (baseado no telefone)
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({ status: statusDetectado })
-        .eq('phone_number', phoneNumber);
+      // Atualiza o status e a ultima mensagem (do bot) no Supabase
+      if (contactId) {
+        const { error: updateError } = await supabase
+          .from('contacts')
+          .update({ 
+            status: statusDetectado,
+            last_message: respostaIA,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', contactId);
 
-      if (updateError) {
-        console.error('❌ Falha ao atualizar status no Supabase:', updateError);
-      } else {
-        console.log(`✅ Status do lead atualizado para: ${statusDetectado}`);
+        if (updateError) {
+          console.error('❌ Falha ao atualizar status no Supabase:', updateError);
+        } else {
+          console.log(`✅ Status do contato atualizado para: ${statusDetectado}`);
+          
+          // Insere a mensagem do sistema
+          await supabase.from('messages').insert({
+            contact_id: contactId,
+            sender: 'system',
+            text: respostaIA
+          });
+        }
       }
 
       // Envia a resposta de volta para o cliente via Evolution API

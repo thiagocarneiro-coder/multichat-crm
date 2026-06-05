@@ -32,24 +32,52 @@ if (!API_URL || !API_KEY) {
   process.exit(1);
 }
 
-const instanceName = process.argv[2];
-
-if (!instanceName) {
-  console.error("❌ Erro: Faltou informar o nome da instância.");
-  console.log("👉 Uso correto: node scripts/set-webhook.js NOME_DA_INSTANCIA");
-  process.exit(1);
-}
+const instanceNameArg = process.argv[2];
 
 async function setWebhook() {
+  console.log('🔍 Buscando a instância ativa na Evolution API...');
+  
+  let instanceName = instanceNameArg;
+
+  if (!instanceName) {
+    try {
+      const instancesRes = await fetch(`${API_URL}/instance/fetchInstances`, {
+        method: 'GET',
+        headers: {
+          'apikey': API_KEY,
+          'cache': 'no-store'
+        }
+      });
+
+      const instancesData = await instancesRes.json();
+      
+      if (Array.isArray(instancesData) && instancesData.length > 0) {
+        const activeInstance = instancesData.find(inst => inst.connectionStatus === 'open') || instancesData[0];
+        instanceName = activeInstance.name;
+        console.log(`✅ Instância encontrada: ${instanceName} (Status: ${activeInstance.connectionStatus})`);
+      } else {
+        console.error('❌ Nenhuma instância encontrada na Evolution API.');
+        return;
+      }
+    } catch (err) {
+      console.error('❌ Erro ao buscar instâncias:', err.message);
+      return;
+    }
+  }
+
   console.log(`\n⏳ Configurando Webhook na instância: [${instanceName}]...`);
   
+  // URL base para o Webhook (preferimos o NEXT_PUBLIC_APP_URL, com fallback pro Ngrok se aplicável)
+  const webhookBaseUrl = envConfig.NEXT_PUBLIC_APP_URL || NGROK_URL;
+
   const webhookPayload = {
     webhook: {
-      url: `${NGROK_URL}/api/webhook/whatsapp`,
-      byEvents: false,
-      base64: false,
+      enabled: true,
+      url: `${webhookBaseUrl}/api/webhook/whatsapp`,
+      webhookByEvents: false,
       events: [
-        "MESSAGES_UPSERT"
+        "MESSAGES_UPSERT", 
+        "CONNECTION_UPDATE"
       ]
     }
   };
@@ -71,7 +99,8 @@ async function setWebhook() {
       console.log('🔗 URL:', webhookPayload.webhook.url);
       console.log('📦 Resposta da AWS:', data);
     } else {
-      console.error('❌ Falha ao configurar webhook:', data);
+      console.error('❌ Falha ao configurar webhook:');
+      console.log('Detalhes do Erro:', JSON.stringify(data, null, 2));
     }
   } catch (err) {
     console.error('❌ Erro de conexão com a API:', err.message);

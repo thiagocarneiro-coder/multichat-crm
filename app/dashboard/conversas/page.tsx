@@ -1,73 +1,125 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MoreVertical, Send, User, Bot, Clock, MessageCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-// Mock Data
-const MOCK_CONTACTS = [
-  {
-    id: '1',
-    name: 'João Silva',
-    number: '+55 11 99999-9999',
-    lastMessage: 'Gostaria de um orçamento para vídeo institucional.',
-    time: '10:32',
-    unread: 2,
-    status: 'online',
-    leadStatus: 'curioso'
-  },
-  {
-    id: '2',
-    name: 'Maria Fernanda',
-    number: '+55 21 98888-8888',
-    lastMessage: 'Quais os valores para cobertura de evento?',
-    time: 'Ontem',
-    unread: 0,
-    status: 'offline',
-    leadStatus: 'em_negociacao'
-  },
-  {
-    id: '3',
-    name: 'Carlos Empreendimentos',
-    number: '+55 31 97777-7777',
-    lastMessage: 'Perfeito, aguardo o envio do contrato.',
-    time: 'Terça',
-    unread: 0,
-    status: 'online',
-    leadStatus: 'comprou'
-  },
-  {
-    id: '4',
-    name: 'Ana Souza',
-    number: '+55 41 96666-6666',
-    lastMessage: '...',
-    time: 'Segunda',
-    unread: 0,
-    status: 'offline',
-    leadStatus: 'nao_responde'
-  }
-];
+interface Contact {
+  id: string;
+  name: string;
+  phone_number: string;
+  last_message: string;
+  status: string;
+  unread: number;
+  updated_at: string;
+}
 
-const MOCK_MESSAGES = [
-  { id: '1', sender: 'client', text: 'Olá! Vi o portfólio da Ursa Filme e gostaria de entender como funciona a produção de uma campanha.', time: '10:30' },
-  { id: '2', sender: 'system', text: 'Olá, João! Tudo bem? Sou a assistente virtual da Ursa Filme. Trabalhamos com produções de alto padrão. Para entender melhor, qual o foco da sua campanha?', time: '10:31' },
-  { id: '3', sender: 'client', text: 'Gostaria de um orçamento para vídeo institucional.', time: '10:32' }
-];
+interface Message {
+  id: string;
+  contact_id: string;
+  sender: 'client' | 'system';
+  text: string;
+  created_at: string;
+}
 
 const STATUS_CONFIG: Record<string, { label: string, color: string }> = {
-  'novo': { label: 'Novo', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-  'curioso': { label: 'Curioso', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  'em_negociacao': { label: 'Em Negociação', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  'comprou': { label: 'Comprou', color: 'bg-green-100 text-green-800 border-green-200' },
-  'nao_responde': { label: 'Não Responde', color: 'bg-red-100 text-red-800 border-red-200' }
+  'NOVO': { label: 'Novo', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+  'CURIOSO': { label: 'Curioso', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  'NEGOCIACAO': { label: 'Em Negociação', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'VENDA_FECHADA': { label: 'Comprou', color: 'bg-green-100 text-green-800 border-green-200' },
+  'NAO_RESPONDE': { label: 'Não Responde', color: 'bg-red-100 text-red-800 border-red-200' }
 };
 
 export default function ConversasPage() {
-  const [selectedContact, setSelectedContact] = useState(MOCK_CONTACTS[0]);
-  const [filterStatus, setFilterStatus] = useState<string>('todos');
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('TODOS');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredContacts = MOCK_CONTACTS.filter(contact => 
-    filterStatus === 'todos' ? true : contact.leadStatus === filterStatus
-  );
+  // 1. Fetch inicial de contatos e inscrição no Realtime
+  useEffect(() => {
+    const fetchContacts = async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      
+      if (!error && data) {
+        setContacts(data);
+      }
+    };
+
+    fetchContacts();
+
+    const channel = supabase.channel('contacts_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setContacts(prev => [payload.new as Contact, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setContacts(prev => {
+            const updated = prev.map(c => c.id === payload.new.id ? payload.new as Contact : c);
+            return updated.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+          });
+          
+          setSelectedContact(prev => prev?.id === payload.new.id ? payload.new as Contact : prev);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // 2. Fetch das mensagens ao selecionar um contato e Realtime
+  useEffect(() => {
+    if (!selectedContact) return;
+
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('contact_id', selectedContact.id)
+        .order('created_at', { ascending: true });
+        
+      if (!error && data) {
+        setMessages(data);
+      }
+    };
+
+    fetchMessages();
+    
+    // Zera os unreads no banco ao abrir a conversa
+    if (selectedContact.unread > 0) {
+      supabase.from('contacts').update({ unread: 0 }).eq('id', selectedContact.id).then();
+    }
+
+    const channel = supabase.channel(`messages_changes_${selectedContact.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `contact_id=eq.${selectedContact.id}` }, (payload) => {
+        setMessages(prev => [...prev, payload.new as Message]);
+        
+        // Zera unreads instantaneamente se a pessoa estiver com a conversa aberta
+        supabase.from('contacts').update({ unread: 0 }).eq('id', selectedContact.id).then();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedContact?.id]);
+
+  const filteredContacts = contacts.filter(contact => {
+    const matchesStatus = filterStatus === 'TODOS' ? true : contact.status === filterStatus;
+    const matchesSearch = (contact.name || contact.phone_number).toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  const formatTime = (isoString?: string) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col md:flex-row bg-slate-50 border-t border-slate-200">
@@ -80,32 +132,32 @@ export default function ConversasPage() {
           {/* Filtros de Status */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button 
-              onClick={() => setFilterStatus('todos')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'todos' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              onClick={() => setFilterStatus('TODOS')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'TODOS' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               Todos
             </button>
             <button 
-              onClick={() => setFilterStatus('curioso')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'curioso' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}
+              onClick={() => setFilterStatus('CURIOSO')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'CURIOSO' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}
             >
               Curiosos
             </button>
             <button 
-              onClick={() => setFilterStatus('em_negociacao')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'em_negociacao' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
+              onClick={() => setFilterStatus('NEGOCIACAO')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'NEGOCIACAO' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
             >
               Em Negociação
             </button>
             <button 
-              onClick={() => setFilterStatus('comprou')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'comprou' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+              onClick={() => setFilterStatus('VENDA_FECHADA')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'VENDA_FECHADA' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
             >
               Compraram
             </button>
             <button 
-              onClick={() => setFilterStatus('nao_responde')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'nao_responde' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
+              onClick={() => setFilterStatus('NAO_RESPONDE')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'NAO_RESPONDE' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
             >
               Não Responde
             </button>
@@ -116,51 +168,56 @@ export default function ConversasPage() {
             <input 
               type="text" 
               placeholder="Buscar contatos..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredContacts.map(contact => {
-            const statusStyle = STATUS_CONFIG[contact.leadStatus] || STATUS_CONFIG['novo'];
-            
-            return (
-            <div 
-              key={contact.id}
-              onClick={() => setSelectedContact(contact)}
-              className={`p-4 border-b border-slate-100 cursor-pointer transition-colors flex gap-3 ${selectedContact.id === contact.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
-            >
-              <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center">
-                  <User className="w-6 h-6 text-slate-500" />
-                </div>
-                {contact.status === 'online' && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-slate-800 truncate text-sm">{contact.name}</h3>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusStyle.color}`}>
-                      {statusStyle.label}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{contact.time}</span>
-                </div>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-sm text-slate-500 truncate">{contact.lastMessage}</p>
-                  {contact.unread > 0 && (
-                    <span className="ml-2 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      {contact.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
+          {filteredContacts.length === 0 ? (
+            <div className="p-6 text-center text-slate-400 text-sm">
+              Nenhum contato encontrado.
             </div>
-            );
-          })}
+          ) : (
+            filteredContacts.map(contact => {
+              const statusStyle = STATUS_CONFIG[contact.status] || STATUS_CONFIG['NOVO'];
+              
+              return (
+              <div 
+                key={contact.id}
+                onClick={() => setSelectedContact(contact)}
+                className={`p-4 border-b border-slate-100 cursor-pointer transition-colors flex gap-3 ${selectedContact?.id === contact.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
+              >
+                <div className="relative flex-shrink-0">
+                  <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center">
+                    <User className="w-6 h-6 text-slate-500" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-slate-800 truncate text-sm">{contact.name || contact.phone_number}</h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusStyle.color}`}>
+                        {statusStyle.label}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{formatTime(contact.updated_at)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-slate-500 truncate">{contact.last_message}</p>
+                    {contact.unread > 0 && (
+                      <span className="ml-2 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {contact.unread}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -175,8 +232,8 @@ export default function ConversasPage() {
                   <User className="w-5 h-5 text-slate-500" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-800">{selectedContact.name}</h2>
-                  <p className="text-xs text-slate-500">{selectedContact.number}</p>
+                  <h2 className="font-bold text-slate-800">{selectedContact.name || selectedContact.phone_number}</h2>
+                  <p className="text-xs text-slate-500">{selectedContact.phone_number}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -194,7 +251,7 @@ export default function ConversasPage() {
                 </span>
               </div>
               
-              {MOCK_MESSAGES.map((msg) => (
+              {messages.map((msg) => (
                 <div 
                   key={msg.id} 
                   className={`flex ${msg.sender === 'client' ? 'justify-start' : 'justify-end'}`}
@@ -222,7 +279,7 @@ export default function ConversasPage() {
                     }`}>
                       <p className="text-sm leading-relaxed">{msg.text}</p>
                       <div className={`text-[10px] mt-1 text-right ${msg.sender === 'client' ? 'text-slate-400' : 'text-blue-200'}`}>
-                        {msg.time}
+                        {formatTime(msg.created_at)}
                       </div>
                     </div>
 
