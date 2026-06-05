@@ -12,7 +12,8 @@ const MOCK_CONTACTS = [
     lastMessage: 'Gostaria de um orçamento para vídeo institucional.',
     time: '10:32',
     unread: 2,
-    status: 'online'
+    status: 'online',
+    leadStatus: 'curioso'
   },
   {
     id: '2',
@@ -21,7 +22,8 @@ const MOCK_CONTACTS = [
     lastMessage: 'Quais os valores para cobertura de evento?',
     time: 'Ontem',
     unread: 0,
-    status: 'offline'
+    status: 'offline',
+    leadStatus: 'em_negociacao'
   },
   {
     id: '3',
@@ -30,7 +32,18 @@ const MOCK_CONTACTS = [
     lastMessage: 'Perfeito, aguardo o envio do contrato.',
     time: 'Terça',
     unread: 0,
-    status: 'online'
+    status: 'online',
+    leadStatus: 'comprou'
+  },
+  {
+    id: '4',
+    name: 'Ana Souza',
+    number: '+55 41 96666-6666',
+    lastMessage: '...',
+    time: 'Segunda',
+    unread: 0,
+    status: 'offline',
+    leadStatus: 'nao_responde'
   }
 ];
 
@@ -40,28 +53,79 @@ const MOCK_MESSAGES = [
   { id: '3', sender: 'client', text: 'Gostaria de um orçamento para vídeo institucional.', time: '10:32' }
 ];
 
+const STATUS_CONFIG: Record<string, { label: string, color: string }> = {
+  'novo': { label: 'Novo', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+  'curioso': { label: 'Curioso', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  'em_negociacao': { label: 'Em Negociação', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'comprou': { label: 'Comprou', color: 'bg-green-100 text-green-800 border-green-200' },
+  'nao_responde': { label: 'Não Responde', color: 'bg-red-100 text-red-800 border-red-200' }
+};
+
 export default function ConversasPage() {
   const [selectedContact, setSelectedContact] = useState(MOCK_CONTACTS[0]);
+  const [filterStatus, setFilterStatus] = useState<string>('todos');
+
+  const filteredContacts = MOCK_CONTACTS.filter(contact => 
+    filterStatus === 'todos' ? true : contact.leadStatus === filterStatus
+  );
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col md:flex-row bg-slate-50 border-t border-slate-200">
       
       {/* Sidebar de Contatos */}
       <div className="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 flex flex-col">
-        <div className="p-4 border-b border-slate-200">
-          <h1 className="text-xl font-bold text-slate-800 mb-4">Conversas</h1>
+        <div className="p-4 border-b border-slate-200 space-y-4">
+          <h1 className="text-xl font-bold text-slate-800">Conversas</h1>
+          
+          {/* Filtros de Status */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button 
+              onClick={() => setFilterStatus('todos')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'todos' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Todos
+            </button>
+            <button 
+              onClick={() => setFilterStatus('curioso')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'curioso' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}
+            >
+              Curiosos
+            </button>
+            <button 
+              onClick={() => setFilterStatus('em_negociacao')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'em_negociacao' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
+            >
+              Em Negociação
+            </button>
+            <button 
+              onClick={() => setFilterStatus('comprou')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'comprou' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+            >
+              Compraram
+            </button>
+            <button 
+              onClick={() => setFilterStatus('nao_responde')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'nao_responde' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
+            >
+              Não Responde
+            </button>
+          </div>
+
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Buscar contatos ou mensagens..." 
+              placeholder="Buscar contatos..." 
               className="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {MOCK_CONTACTS.map(contact => (
+          {filteredContacts.map(contact => {
+            const statusStyle = STATUS_CONFIG[contact.leadStatus] || STATUS_CONFIG['novo'];
+            
+            return (
             <div 
               key={contact.id}
               onClick={() => setSelectedContact(contact)}
@@ -77,10 +141,15 @@ export default function ConversasPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-semibold text-slate-800 truncate text-sm">{contact.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-slate-800 truncate text-sm">{contact.name}</h3>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusStyle.color}`}>
+                      {statusStyle.label}
+                    </span>
+                  </div>
                   <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{contact.time}</span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mt-1">
                   <p className="text-sm text-slate-500 truncate">{contact.lastMessage}</p>
                   {contact.unread > 0 && (
                     <span className="ml-2 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -90,7 +159,8 @@ export default function ConversasPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

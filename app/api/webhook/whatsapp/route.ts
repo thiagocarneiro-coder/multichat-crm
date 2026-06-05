@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -8,50 +9,81 @@ export async function POST(request: Request) {
     // Extração segura baseada no formato da Evolution API v2 (messages.upsert)
     const data = body?.data;
     if (!data || !data.key) {
-      // Se não for um evento de mensagem estruturado, ignora
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    // Barreira de segurança: Ignora mensagens enviadas pelo próprio Bot (eco)
     if (data.key.fromMe === true) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    // Extrai o número do remetente
     const remoteJid = data.key.remoteJid;
+    const phoneNumber = remoteJid.split('@')[0];
+    const textMessage = data.message?.conversation || data.message?.extendedTextMessage?.text || "";
 
-    // Extrai o texto da mensagem (suporta texto puro ou texto com reply/forward/media)
-    const textMessage = 
-      data.message?.conversation || 
-      data.message?.extendedTextMessage?.text || 
-      "";
-
-    // Se não tiver texto, podemos ignorar (ex: mensagem de sistema, áudio isolado sem legenda, etc)
     if (!textMessage.trim()) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    // Log super visual no terminal
     console.log('\n=============================================');
     console.log('🟢 NOVA MENSAGEM RECEBIDA:');
     console.log('📱 De:', remoteJid);
     console.log('💬 Texto:', textMessage);
     console.log('=============================================\n');
 
-    // Integração Gemini
+    // Integração Gemini com Classificação Semântica
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-2.0-flash',
+        generationConfig: { responseMimeType: "application/json" }
+      });
       
-      const prompt = `Você é um assistente virtual de uma agência de audiovisual chamada Ursa Filme. Um cliente enviou a seguinte mensagem: "${textMessage}". Responda de forma profissional e curta.`;
+      const prompt = `Você é um assistente virtual de uma agência de audiovisual chamada Ursa Filme. 
+Um cliente enviou a seguinte mensagem: "${textMessage}". 
+
+Atue como atendente e como classificador de funil de vendas. Analise a intenção da mensagem do cliente e classifique-o ESTRITAMENTE em uma destas categorias:
+- "curioso": perguntas vagas, sem intenção clara de fechamento ou orçamento imediato.
+- "em_negociacao": pediu orçamento, está discutindo escopo de projeto, prazos ou valores.
+- "comprou": fechou contrato, aprovou a proposta ou realizou o pagamento.
+- "nao_responde": abandonou o fluxo (use apenas se o contexto exigir, mas geralmente você deve focar nas 3 acima).
+
+Retorne OBRIGATORIAMENTE um objeto JSON com as seguintes chaves:
+{
+  "status_detectado": "A CATEGORIA DETECTADA",
+  "resposta_texto": "A SUA RESPOSTA PROFISSIONAL E CURTA PARA O CLIENTE"
+}`;
       
-      // Bypass temporário por conta de rate limit da API do Google (429)
-      // const result = await model.generateContent(prompt);
-      // const respostaIA = result.response.text();
-      const respostaIA = "🚀 *Teste do Sistema:* A ponte de envio está 100% operacional! Ursa Filme conectada.";
+      const result = await model.generateContent(prompt);
+      const rawText = result.response.text();
       
+      let statusDetectado = 'novo';
+      let respostaIA = '';
+
+      try {
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        const parsedJSON = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+        statusDetectado = parsedJSON.status_detectado || 'novo';
+        respostaIA = parsedJSON.resposta_texto || 'Desculpe, não consegui processar o pedido.';
+      } catch (e) {
+        console.error('Erro ao parsear JSON do Gemini:', e);
+        respostaIA = "Desculpe, tivemos uma falha interna na IA.";
+      }
+      
+      console.log('🧠 CLASSIFICAÇÃO DA IA:', statusDetectado);
       console.log('🧠 RESPOSTA DA IA:', respostaIA);
+
+      // Atualiza o status no Supabase (baseado no telefone)
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({ status: statusDetectado })
+        .eq('phone_number', phoneNumber);
+
+      if (updateError) {
+        console.error('❌ Falha ao atualizar status no Supabase:', updateError);
+      } else {
+        console.log(`✅ Status do lead atualizado para: ${statusDetectado}`);
+      }
 
       // Envia a resposta de volta para o cliente via Evolution API
       const instanceName = body.instance;
