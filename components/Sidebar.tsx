@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Building2, Settings, Target } from 'lucide-react';
+import { LayoutDashboard, MessageCircle, Building2, Settings, Target } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Leads', href: '/dashboard/leads', icon: Users },
+  { name: 'Conversas', href: '/dashboard/conversas', icon: MessageCircle },
   { name: 'Clientes', href: '/dashboard/clientes', icon: Building2 },
   { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
 ];

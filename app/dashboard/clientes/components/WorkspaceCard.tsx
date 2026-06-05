@@ -200,6 +200,13 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                   <p className="text-sm text-slate-500">Conecte o número de atendimento do cliente escaneando o QR Code.</p>
                 </div>
               </div>
+
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                <span className="text-amber-500 mt-0.5 text-sm">⚠️</span>
+                <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                  <strong>ATENÇÃO:</strong> Nunca desconecte a sessão do WhatsApp manualmente pelo seu celular. Quedas frequentes ou desconexões manuais em APIs não-oficiais ativam o filtro de spam da Meta e causam banimento imediato do número.
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col items-center gap-3 min-w-[200px]">
