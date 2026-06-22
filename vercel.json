@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/classify-leads",
-      "schedule": "0 11,15,20,1 * * *"
+      "schedule": "0 15 * * *"
     }
   ]
 }
