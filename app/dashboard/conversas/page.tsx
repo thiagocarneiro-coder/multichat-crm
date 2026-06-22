@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, MoreVertical, Send, User, Bot, Clock, MessageCircle } from 'lucide-react';
+import { Search, MoreVertical, Send, User, Bot, Clock, MessageCircle, Globe, Target } from 'lucide-react';
 import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 interface Contact {
@@ -12,6 +12,8 @@ interface Contact {
   status: string;
   unread: number;
   updated_at: string;
+  utm_source: string | null;
+  utm_campaign: string | null;
 }
 
 interface Message {
@@ -28,6 +30,18 @@ const STATUS_CONFIG: Record<string, { label: string, color: string }> = {
   'EM NEGOCIAÇÃO': { label: 'Em Negociação', color: 'bg-blue-100 text-blue-800 border-blue-200' },
   'COMPROU': { label: 'Comprou', color: 'bg-green-100 text-green-800 border-green-200' },
   'NAO_RESPONDE': { label: 'Não Responde', color: 'bg-red-100 text-red-800 border-red-200' }
+};
+
+const SOURCE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  'meta_ads': { label: 'Meta Ads', icon: '📘', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  'facebook': { label: 'Facebook', icon: '📘', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  'instagram': { label: 'Instagram', icon: '📸', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+  'google_ads': { label: 'Google Ads', icon: '🔍', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  'google': { label: 'Google', icon: '🔍', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  'tiktok': { label: 'TikTok', icon: '🎵', color: 'bg-gray-50 text-gray-700 border-gray-200' },
+  'youtube': { label: 'YouTube', icon: '▶️', color: 'bg-red-50 text-red-700 border-red-200' },
+  'organic': { label: 'Orgânico', icon: '🌱', color: 'bg-green-50 text-green-700 border-green-200' },
+  'direct': { label: 'Direto', icon: '💬', color: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
 export default function ConversasPage() {
@@ -207,6 +221,14 @@ export default function ConversasPage() {
                     </div>
                     <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{formatTime(contact.updated_at)}</span>
                   </div>
+                  {contact.utm_source && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border inline-flex items-center gap-1 ${SOURCE_CONFIG[contact.utm_source]?.color || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                        <span>{SOURCE_CONFIG[contact.utm_source]?.icon || '🔗'}</span>
+                        {SOURCE_CONFIG[contact.utm_source]?.label || contact.utm_source}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mt-1">
                     <p className="text-sm text-slate-500 truncate">{contact.last_message}</p>
                     {contact.unread > 0 && (
@@ -234,8 +256,21 @@ export default function ConversasPage() {
                   <User className="w-5 h-5 text-slate-500" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-800">{selectedContact.name || selectedContact.phone_number}</h2>
-                  <p className="text-xs text-slate-500">{selectedContact.phone_number}</p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-bold text-slate-800">{selectedContact.name || selectedContact.phone_number}</h2>
+                    {selectedContact.utm_source && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${SOURCE_CONFIG[selectedContact.utm_source]?.color || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                        <span>{SOURCE_CONFIG[selectedContact.utm_source]?.icon || '🔗'}</span>
+                        {SOURCE_CONFIG[selectedContact.utm_source]?.label || selectedContact.utm_source}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {selectedContact.phone_number}
+                    {selectedContact.utm_campaign && (
+                      <span className="ml-2 text-slate-400">• Campanha: {selectedContact.utm_campaign}</span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-4">

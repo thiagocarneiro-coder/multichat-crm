@@ -92,8 +92,25 @@ Regras: Responda APENAS com UMA das palavras abaixo, sem pontuação, sem explic
 - COMPROU (Se confirmou pagamento, enviou comprovante ou disse claramente que fechou)
 `;
 
+      // Delay entre chamadas para respeitar rate limit do Gemini free tier
+      if (contacts.indexOf(contact) > 0) {
+        console.log('⏳ Aguardando 5s para respeitar rate limit...');
+        await new Promise(r => setTimeout(r, 5000));
+      }
+
       try {
-        const result = await model.generateContent(prompt);
+        let result;
+        try {
+          result = await model.generateContent(prompt);
+        } catch (retryErr: any) {
+          if (retryErr?.status === 429) {
+            console.log('⏳ Rate limit atingido. Aguardando 30s e tentando novamente...');
+            await new Promise(r => setTimeout(r, 30000));
+            result = await model.generateContent(prompt);
+          } else {
+            throw retryErr;
+          }
+        }
         const statusRaw = result.response.text().trim().toUpperCase();
 
         const validStatuses = ['NOVO', 'CURIOSO', 'EM NEGOCIAÇÃO', 'COMPROU'];

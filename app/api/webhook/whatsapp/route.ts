@@ -65,6 +65,25 @@ export async function POST(request: Request) {
       pushName = body.entry[0].changes[0].value?.contacts?.[0]?.profile?.name || 'Desconhecido';
     }
 
+    // ─── Evento de conexão: salvar phone no workspace automaticamente ───
+    if (body?.event === 'connection.update' && body?.data?.state === 'open' && body?.sender) {
+      const ownerPhone = body.sender.split('@')[0];
+      const instanceName = body?.instance || '';
+      // Extrai o slug do nome da instância (ex: agencia-demo-1234567 → agencia-demo)
+      const slugMatch = instanceName.match(/^(.+)-\d+$/);
+      if (slugMatch && ownerPhone) {
+        const slug = slugMatch[1];
+        const { error } = await supabaseAdmin
+          .from('workspaces')
+          .update({ phone: ownerPhone })
+          .eq('slug', slug);
+        if (!error) {
+          console.log(`📱 Phone ${ownerPhone} salvo automaticamente no workspace '${slug}'`);
+        }
+      }
+      return new Response('Connection update processed', { status: 200 });
+    }
+
     // ─── 2. Filtros essenciais ───
 
     if (!phone_number || phone_number.includes('@g.us')) {

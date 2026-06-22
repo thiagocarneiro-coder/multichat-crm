@@ -4,6 +4,86 @@ import { useState, useEffect } from 'react';
 import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle, Smartphone, QrCode, Loader2 } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api';
 
+// ─── Componente reutilizável para cada link de rastreamento ───
+function TrackingLinkBlock({ step, emoji, title, subtitle, link, instructions, color }: {
+  step: number;
+  emoji: string;
+  title: string;
+  subtitle: string;
+  link: string;
+  instructions: string[];
+  color: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const colorMap: Record<string, string> = {
+    blue: 'border-blue-500/30 bg-blue-500/5',
+    pink: 'border-pink-500/30 bg-pink-500/5',
+    emerald: 'border-emerald-500/30 bg-emerald-500/5',
+    red: 'border-red-500/30 bg-red-500/5',
+    slate: 'border-slate-500/30 bg-slate-500/5',
+  };
+
+  const badgeMap: Record<string, string> = {
+    blue: 'bg-blue-500/20 text-blue-300',
+    pink: 'bg-pink-500/20 text-pink-300',
+    emerald: 'bg-emerald-500/20 text-emerald-300',
+    red: 'bg-red-500/20 text-red-300',
+    slate: 'bg-slate-500/20 text-slate-300',
+  };
+
+  return (
+    <div className={`rounded-xl border p-4 ${colorMap[color] || colorMap.blue}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <span className="text-lg">{emoji}</span>
+          <div>
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              {title}
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeMap[color] || badgeMap.blue}`}>
+                Passo {step}
+              </span>
+            </h4>
+            <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Link copiável */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex-1 bg-slate-950 px-3 py-2.5 rounded-lg border border-slate-800 overflow-x-auto">
+          <code className="text-xs text-emerald-400 break-all whitespace-nowrap">{link}</code>
+        </div>
+        <button
+          onClick={handleCopy}
+          className={`flex-shrink-0 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            copied 
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+              : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white'
+          }`}
+        >
+          {copied ? '✓ Copiado' : 'Copiar'}
+        </button>
+      </div>
+
+      {/* Instruções */}
+      <ul className="space-y-1.5">
+        {instructions.map((inst, i) => (
+          <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+            <span className="text-slate-600 mt-0.5 flex-shrink-0">•</span>
+            <span dangerouslySetInnerHTML={{ __html: inst.replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-300">$1</strong>').replace(/`(.*?)`/g, '<code class="text-blue-400 bg-slate-800 px-1 rounded">$1</code>') }} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 type Workspace = {
   id: string;
   name: string;
@@ -238,78 +318,113 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
           </div>
 
           <div className="bg-slate-900 rounded-2xl p-6 text-slate-300 mt-6 border border-slate-800 shadow-xl">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                 <Terminal className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-lg">Integração do Cliente</h3>
-                <p className="text-sm text-slate-400">Instruções para rastreio e campanhas deste workspace.</p>
+                <h3 className="text-white font-bold text-lg">Links de Rastreamento</h3>
+                <p className="text-sm text-slate-400">Use os links abaixo nas suas fontes de tráfego para rastrear 100% dos leads.</p>
               </div>
             </div>
 
-            <div className="space-y-8">
-              {/* Bloco 1: Intercepção via GTM */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-semibold text-slate-200">1. Intercepção (GTM)</h4>
-                  <button 
-                    onClick={() => copyToClipboard(scriptContent, 'script')}
-                    className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
-                  >
-                    {copiedScript ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    {copiedScript ? 'Copiado' : 'Copiar'}
-                  </button>
-                </div>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto">
-                  <pre className="text-xs text-blue-300 font-mono">
-                    <code>{scriptContent}</code>
-                  </pre>
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  Adicione este script no Google Tag Manager para interceptar as ações. O slug <strong className="text-slate-300">{workspace.slug}</strong> já está injetado automaticamente!
-                </p>
-              </div>
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-3 mb-6">
+              <span className="text-emerald-400 mt-0.5 text-sm">💡</span>
+              <p className="text-xs text-emerald-300 leading-relaxed">
+                <strong>Siga os passos abaixo</strong> para rastrear todos os seus leads. Cada plataforma tem um link específico — basta copiar e colar no local indicado.
+              </p>
+            </div>
 
-              {/* Bloco 2: Macete do WhatsApp */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-semibold text-slate-200">2. Macete do WhatsApp (Meta Ads)</h4>
-                  <button 
-                    onClick={() => copyToClipboard(whatsappLink, 'link')}
-                    className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
-                  >
-                    {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    {copiedLink ? 'Copiado' : 'Copiar'}
-                  </button>
-                </div>
-                <div className="flex items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
-                  <code className="text-xs text-emerald-400 flex-1 break-all">{whatsappLink}</code>
-                </div>
-                <p className="text-xs text-slate-500 mt-3">
-                  Use esta estrutura de URL no campo de destino das suas campanhas se enviar direto para o WhatsApp sem Bridge Page.
-                </p>
-              </div>
+            <div className="space-y-6">
 
-              {/* Bloco 3: Bridge Page Pública */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-semibold text-slate-200">3. Bridge Page (Página Ponte Segura)</h4>
-                  <button 
-                    onClick={() => copyToClipboard(`${appDomain}/go/${workspace.slug}`, 'bridge')}
-                    className="text-xs flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
-                  >
-                    {copiedBridge ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    {copiedBridge ? 'Copiado' : 'Copiar'}
-                  </button>
-                </div>
-                <div className="flex items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
-                  <code className="text-xs text-blue-400 flex-1 break-all">{`${appDomain}/go/${workspace.slug}`}</code>
-                </div>
-                <p className="text-xs text-slate-500 mt-3">
-                  URL pública segura para usar como Destino nas campanhas do Facebook Ads caso você não possua landing page própria.
-                </p>
-              </div>
+              {/* ─── 1. Meta Ads (Pulo do Gato) ─── */}
+              <TrackingLinkBlock
+                step={1}
+                emoji="📘"
+                title="Meta Ads (Facebook & Instagram Ads)"
+                subtitle="O 'pulo do gato' — campanha de conversão para site"
+                link={`${appDomain}/go/${workspace.slug}?utm_source=meta_ads&utm_campaign=NOME_DA_CAMPANHA`}
+                instructions={[
+                  "No Gerenciador de Anúncios, crie uma campanha de **Vendas** com destino **Site**.",
+                  "No campo 'URL do Site', cole o link acima (troque NOME_DA_CAMPANHA pelo nome real).",
+                  "O lead será redirecionado para o WhatsApp automaticamente pela nossa Bridge Page.",
+                  "A origem **Meta Ads** ficará registrada automaticamente em cada lead."
+                ]}
+                color="blue"
+              />
+
+              {/* ─── 2. Instagram Bio ─── */}
+              <TrackingLinkBlock
+                step={2}
+                emoji="📸"
+                title="Instagram (Link na Bio)"
+                subtitle="Rastreie leads que vêm da bio do seu Instagram"
+                link={`${appDomain}/go/${workspace.slug}?utm_source=instagram&utm_campaign=bio`}
+                instructions={[
+                  "Vá em **Editar Perfil** no Instagram e cole este link no campo 'Site'.",
+                  "Todo lead que clicar no link da bio será rastreado como **Instagram**."
+                ]}
+                color="pink"
+              />
+
+              {/* ─── 3. Google Ads ─── */}
+              <TrackingLinkBlock
+                step={3}
+                emoji="🔍"
+                title="Google Ads"
+                subtitle="Campanhas de busca, display ou YouTube Ads"
+                link={`${appDomain}/go/${workspace.slug}?utm_source=google_ads&utm_campaign=NOME_DA_CAMPANHA&gclid={gclid}`}
+                instructions={[
+                  "Use este link como **URL final** da campanha no Google Ads.",
+                  "O `{gclid}` será preenchido automaticamente pelo Google.",
+                  "Funciona para campanhas de Busca, Display e Performance Max."
+                ]}
+                color="emerald"
+              />
+
+              {/* ─── 4. YouTube ─── */}
+              <TrackingLinkBlock
+                step={4}
+                emoji="▶️"
+                title="YouTube"
+                subtitle="Link na descrição de vídeos ou canal"
+                link={`${appDomain}/go/${workspace.slug}?utm_source=youtube&utm_campaign=NOME_DO_VIDEO`}
+                instructions={[
+                  "Cole na **descrição do vídeo** ou nos **cards/telas finais**.",
+                  "Troque NOME_DO_VIDEO pelo título ou referência do conteúdo."
+                ]}
+                color="red"
+              />
+
+              {/* ─── 5. TikTok ─── */}
+              <TrackingLinkBlock
+                step={5}
+                emoji="🎵"
+                title="TikTok"
+                subtitle="Link na bio ou TikTok Ads"
+                link={`${appDomain}/go/${workspace.slug}?utm_source=tiktok&utm_campaign=NOME_DA_CAMPANHA`}
+                instructions={[
+                  "Use na **bio do TikTok** ou como URL de destino em **TikTok Ads**.",
+                  "Para ads, troque NOME_DA_CAMPANHA pela identificação da campanha."
+                ]}
+                color="slate"
+              />
+
+              {/* ─── 6. Landing Pages / Botões ─── */}
+              <TrackingLinkBlock
+                step={6}
+                emoji="🌐"
+                title="Landing Pages & Sites (Botões de WhatsApp)"
+                subtitle="Links personalizados para botões CTA na sua LP"
+                link={`${appDomain}/go/${workspace.slug}?utm_source=landing_page&utm_campaign=NOME_DA_PAGINA`}
+                instructions={[
+                  "Use como `href` dos botões **'Falar no WhatsApp'** da sua landing page.",
+                  "Cada botão pode ter uma campanha diferente para rastrear qual página converte mais.",
+                  "Também funciona para links em e-mails marketing e newsletters."
+                ]}
+                color="blue"
+              />
+
             </div>
           </div>
         </div>
