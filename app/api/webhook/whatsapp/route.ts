@@ -214,9 +214,12 @@ export async function POST(request: Request) {
     // Retorno obrigatório de 200 OK
     return NextResponse.json({ success: true }, { status: 200 });
 
-  } catch (error) {
-    console.error('❌ Erro ao processar Webhook:', error);
-    return NextResponse.json({ success: false }, { status: 200 });
+  } catch (error: any) {
+    console.error('❌ Erro ao processar Webhook:', error?.message || error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error?.message || 'Internal Server Error'
+    }, { status: 200 });
   }
 }
 
