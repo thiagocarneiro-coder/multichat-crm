@@ -1,7 +1,7 @@
 import WorkspaceSelector from './WorkspaceSelector';
+import LogoutButton from './LogoutButton';
 import { cookies } from 'next/headers';
-import { Bell, User } from 'lucide-react';
-
+import { Bell } from 'lucide-react';
 type Workspace = {
   id: string;
   name: string;
@@ -31,9 +31,7 @@ export default async function Header({ workspaces }: { workspaces: Workspace[] }
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
         </button>
         
-        <button className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 hover:border-slate-300 transition-colors">
-          <User className="w-4 h-4 text-slate-600" />
-        </button>
+        <LogoutButton />
       </div>
     </header>
   );

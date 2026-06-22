@@ -1,64 +1,97 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 /**
- * Next.js Middleware — Tracker-SaaS Security Layer
+ * Next.js Middleware — Riguetto Tracker Security Layer
  * 
- * Protects internal API routes with Bearer token validation.
- * Runs BEFORE the route handler, at the edge.
- * 
- * Protected routes: /api/whatsapp/create, /api/whatsapp/status
- * Excluded (public): webhooks, redirects, bridge page APIs, cron (has its own auth)
+ * 1. Protege rotas /dashboard/* → redireciona para /login se não autenticado
+ * 2. Protege APIs internas (whatsapp/create, whatsapp/status) com Bearer token
+ * 3. Rotas públicas (webhooks, bridge page, auth, landing) passam sem autenticação
  */
 
-// Routes that require internal Bearer token authentication
-const PROTECTED_ROUTES = [
+// Rotas que requerem Bearer token interno (chamadas do frontend)
+const BEARER_PROTECTED_ROUTES = [
   '/api/whatsapp/create',
   '/api/whatsapp/status',
 ];
 
-export function middleware(request: NextRequest) {
+// Rotas sempre públicas (sem auth nenhuma)
+const PUBLIC_ROUTES = [
+  '/api/webhook',
+  '/api/auth',
+  '/api/track',
+  '/api/tracking',
+  '/api/get-instance-phone',
+  '/api/redirect',
+  '/api/cron',
+  '/api/stripe',
+  '/go/',
+  '/login',
+  '/signup',
+];
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only intercept protected API routes
-  const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
-
-  if (!isProtected) {
+  // ─── Rotas públicas: passar direto ───
+  const isPublic = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  if (isPublic || pathname === '/') {
     return NextResponse.next();
   }
 
-  // Validate Bearer token
-  const authHeader = request.headers.get('authorization');
-  const expectedToken = process.env.NEXT_PUBLIC_INTERNAL_API_SECRET;
+  // ─── APIs com Bearer token ───
+  const needsBearer = BEARER_PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+  if (needsBearer) {
+    const authHeader = request.headers.get('authorization');
+    const expectedToken = process.env.NEXT_PUBLIC_INTERNAL_API_SECRET;
 
-  if (!expectedToken) {
-    console.error('[Middleware] NEXT_PUBLIC_INTERNAL_API_SECRET not configured');
-    return NextResponse.json(
-      { error: 'Server misconfiguration' },
-      { status: 500 }
-    );
+    if (!expectedToken) {
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.replace('Bearer ', '') !== expectedToken) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    return NextResponse.next();
   }
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
-    );
-  }
+  // ─── Dashboard: verificar sessão Supabase Auth ───
+  if (pathname.startsWith('/dashboard')) {
+    let response = NextResponse.next({
+      request: { headers: request.headers },
+    });
 
-  const token = authHeader.replace('Bearer ', '');
-
-  if (token !== expectedToken) {
-    return NextResponse.json(
-      { error: 'Invalid credentials' },
-      { status: 401 }
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
     );
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return response;
   }
 
   return NextResponse.next();
 }
 
-// Only run middleware on API routes (skip static assets, pages, etc.)
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/dashboard/:path*', '/api/:path*'],
 };
