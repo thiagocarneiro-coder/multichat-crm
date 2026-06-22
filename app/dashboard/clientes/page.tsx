@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import { getUser } from '@/lib/supabase-server';
 import NewWorkspaceModal from './components/NewWorkspaceModal';
 import WorkspaceCard from './components/WorkspaceCard';
 import { Building2 } from 'lucide-react';
@@ -6,9 +7,12 @@ import { Building2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function WorkspacesPage() {
+  const user = await getUser();
+
   const { data: workspaces, error } = await supabaseAdmin
     .from('workspaces')
     .select('*')
+    .eq('user_id', user?.id)
     .order('created_at', { ascending: false });
 
   if (error) {
