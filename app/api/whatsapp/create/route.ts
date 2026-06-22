@@ -164,6 +164,31 @@ export async function POST(request: Request) {
       }
     }
 
+    // ─── Etapa 4: Configurar webhook automaticamente ───
+    const WEBHOOK_URL = process.env.NEXT_PUBLIC_APP_URL 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/whatsapp`
+      : 'https://tracker-saas-ten.vercel.app/api/webhook/whatsapp';
+    const WEBHOOK_SECRET = process.env.WEBHOOK_GLOBAL_SECRET;
+
+    try {
+      await fetch(`${API_URL}/webhook/set/${instanceName}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
+        body: JSON.stringify({
+          webhook: {
+            enabled: true,
+            url: WEBHOOK_URL,
+            webhookByEvents: false,
+            events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
+            headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
+          }
+        })
+      });
+      console.log(`[WhatsApp] 🔗 Webhook configurado: ${WEBHOOK_URL}`);
+    } catch (e) {
+      console.log('[WhatsApp] ⚠️ Erro ao configurar webhook (não bloqueante):', e);
+    }
+
     return NextResponse.json({ 
       success: true, 
       base64, 
