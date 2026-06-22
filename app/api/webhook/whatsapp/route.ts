@@ -20,9 +20,12 @@ import { validateWebhookSecret } from '@/lib/auth';
  */
 
 export async function POST(request: Request) {
+  let debugStep = 'init';
   try {
+    debugStep = 'parse_body';
     const body = await request.json();
 
+    debugStep = 'validate_secret';
     // Security: validate webhook secret from Evolution API
     const auth = validateWebhookSecret(request);
     if (!auth.valid) return auth.response!;
@@ -215,10 +218,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error: any) {
-    console.error('❌ Erro ao processar Webhook:', error?.message || error);
+    console.error('❌ Erro ao processar Webhook:', debugStep, error);
     return NextResponse.json({ 
       success: false, 
-      error: error?.message || 'Internal Server Error'
+      step: debugStep,
+      error: error?.message || String(error) || 'Unknown error'
     }, { status: 200 });
   }
 }
