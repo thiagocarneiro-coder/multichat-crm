@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PLANS, PlanKey } from '@/lib/stripe';
+import { PLANS, PlanKey } from '@/lib/plans';
 import { Check, Zap, Crown, Building2, Loader2, ArrowLeft, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 
