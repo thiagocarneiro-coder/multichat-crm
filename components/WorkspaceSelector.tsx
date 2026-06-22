@@ -74,7 +74,7 @@ export default function WorkspaceSelector({ workspaces, initialWorkspaceId }: { 
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  router.push('/dashboard/workspaces');
+                  router.push('/dashboard/clientes');
                 }}
                 className="w-full px-3 py-2 text-sm text-left text-blue-600 font-medium hover:bg-slate-50 transition-colors"
               >
