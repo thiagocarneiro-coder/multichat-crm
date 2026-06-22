@@ -25,7 +25,7 @@ try {
 
 const API_URL = envConfig.EVOLUTION_API_URL;
 const API_KEY = envConfig.EVOLUTION_GLOBAL_KEY;
-const NGROK_URL = "https://guzzler-snugly-annex.ngrok-free.dev";
+const APP_URL = envConfig.NEXT_PUBLIC_APP_URL;
 
 if (!API_URL || !API_KEY) {
   console.error("❌ EVOLUTION_API_URL ou EVOLUTION_GLOBAL_KEY faltando no .env.local");
@@ -68,7 +68,7 @@ async function setWebhook() {
   console.log(`\n⏳ Configurando Webhook na instância: [${instanceName}]...`);
   
   // URL base para o Webhook (preferimos o NEXT_PUBLIC_APP_URL, com fallback pro Ngrok se aplicável)
-  const webhookBaseUrl = envConfig.NEXT_PUBLIC_APP_URL || NGROK_URL;
+  const webhookBaseUrl = envConfig.NEXT_PUBLIC_APP_URL || APP_URL;
 
   const webhookPayload = {
     webhook: {
@@ -78,7 +78,10 @@ async function setWebhook() {
       events: [
         "MESSAGES_UPSERT", 
         "CONNECTION_UPDATE"
-      ]
+      ],
+      headers: {
+        "x-webhook-secret": envConfig.WEBHOOK_GLOBAL_SECRET || ""
+      }
     }
   };
 

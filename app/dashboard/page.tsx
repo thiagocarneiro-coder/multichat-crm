@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { 
   Users, 
@@ -17,12 +17,12 @@ export const dynamic = 'force-dynamic';
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case 'VENDA_FECHADA':
-      return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">VENDA FECHADA</span>;
-    case 'NEGOCIACAO':
-      return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">NEGOCIAÇÃO</span>;
-    case 'DUVIDA':
-      return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">DÚVIDA</span>;
+    case 'COMPROU':
+      return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">COMPROU</span>;
+    case 'EM NEGOCIAÇÃO':
+      return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">EM NEGOCIAÇÃO</span>;
+    case 'CURIOSO':
+      return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">CURIOSO</span>;
     case 'NOVO':
     default:
       return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">NOVO</span>;
@@ -35,7 +35,7 @@ export default async function DashboardPage() {
 
   // Fallback: se não tiver cookie, pega o primeiro workspace do banco
   if (!activeWorkspaceId) {
-    const { data: firstWorkspace } = await supabase.from('workspaces').select('id').limit(1).single();
+    const { data: firstWorkspace } = await supabaseAdmin.from('workspaces').select('id').limit(1).single();
     if (firstWorkspace) {
       activeWorkspaceId = firstWorkspace.id;
     }
@@ -56,7 +56,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const { data: leads, error } = await supabase
+  const { data: leads, error } = await supabaseAdmin
     .from('leads')
     .select(`
       id,
@@ -85,7 +85,7 @@ export default async function DashboardPage() {
 
   // Cálculos para os Cards
   const totalLeads = leads?.length || 0;
-  const totalSales = leads?.filter((l) => l.status === 'VENDA_FECHADA').length || 0;
+  const totalSales = leads?.filter((l) => l.status === 'COMPROU').length || 0;
   const conversionRate = totalLeads > 0 ? ((totalSales / totalLeads) * 100).toFixed(1) : '0.0';
 
   return (

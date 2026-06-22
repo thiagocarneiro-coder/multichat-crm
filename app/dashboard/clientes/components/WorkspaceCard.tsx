@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle, Smartphone, QrCode, Loader2 } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/api';
 
 type Workspace = {
   id: string;
@@ -22,8 +23,8 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [connectionState, setConnectionState] = useState<'open' | 'connecting' | 'close'>('close');
   const [activeInstanceName, setActiveInstanceName] = useState<string | null>(null);
 
-  // Consider in production that this should be dynamic based on window.location.origin
-  const appDomain = typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com';
+  // Usar a URL pública definida nas variáveis de ambiente, ou fallback para a origem local
+  const appDomain = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com');
 
   const scriptContent = `<script>
   // Script de Interceptação - GTM
@@ -60,9 +61,8 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
     try {
       const instanceName = `${workspace.slug}-${Date.now()}`;
       
-      const response = await fetch('/api/whatsapp/create', {
+      const response = await authenticatedFetch('/api/whatsapp/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instanceName })
       });
       
@@ -95,7 +95,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   useEffect(() => {
     const checkInitialStatus = async () => {
       try {
-        const response = await fetch(`/api/whatsapp/status?slug=${workspace.slug}`);
+        const response = await authenticatedFetch(`/api/whatsapp/status?slug=${workspace.slug}`);
         const res = await response.json();
         
         if (response.ok && res.success) {
@@ -120,7 +120,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
     if (qrCodeData && connectionState === 'connecting' && activeInstanceName) {
       interval = setInterval(async () => {
         try {
-          const response = await fetch(`/api/whatsapp/status?slug=${workspace.slug}`);
+          const response = await authenticatedFetch(`/api/whatsapp/status?slug=${workspace.slug}`);
           const res = await response.json();
           
           if (response.ok && res.success) {

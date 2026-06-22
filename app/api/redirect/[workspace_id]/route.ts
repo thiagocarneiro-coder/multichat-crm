@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { generateSessionCode } from '@/lib/utils';
 
 export async function GET(
@@ -30,7 +30,7 @@ export async function GET(
     const session_code = generateSessionCode();
 
     // 2. Grava a sessão no Supabase de forma imediata
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('click_sessions')
       .insert([
         {

@@ -21,7 +21,7 @@ export default function Sidebar() {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <Target className="w-5 h-5 text-white" />
           </div>
-          Tracker-SaaS
+          Riguetto <span className="text-blue-400">Tracker</span>
         </Link>
       </div>
 

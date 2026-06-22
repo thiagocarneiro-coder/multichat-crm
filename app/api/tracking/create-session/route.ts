@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { generateSessionCode } from '@/lib/utils';
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     
     const session_code = generateSessionCode();
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('click_sessions')
       .insert([
         {

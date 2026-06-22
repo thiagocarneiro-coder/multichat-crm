@@ -1,13 +1,13 @@
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { data: workspaces } = await supabase
+  const { data: workspaces } = await supabaseAdmin
     .from('workspaces')
     .select('id, name, slug')
     .order('name');

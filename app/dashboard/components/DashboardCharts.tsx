@@ -13,9 +13,9 @@ export default function DashboardCharts({ leads }: { leads: any[] }) {
     // Processar Origens (utm_source)
     const sourceMap: Record<string, number> = {};
     const statusMap: Record<string, number> = {
-      'VENDA_FECHADA': 0,
-      'NEGOCIACAO': 0,
-      'DUVIDA': 0,
+      'COMPROU': 0,
+      'EM NEGOCIAÇÃO': 0,
+      'CURIOSO': 0,
       'NOVO': 0
     };
 
@@ -38,10 +38,10 @@ export default function DashboardCharts({ leads }: { leads: any[] }) {
     })).sort((a, b) => b.value - a.value); // Ordena maior pro menor
 
     const parsedStatusData = [
-      { name: 'Vendas', count: statusMap['VENDA_FECHADA'], fill: '#10b981' }, // emerald-500
-      { name: 'Negociação', count: statusMap['NEGOCIACAO'], fill: '#f59e0b' }, // amber-500
-      { name: 'Dúvida', count: statusMap['DUVIDA'], fill: '#3b82f6' }, // blue-500
-      { name: 'Novo', count: statusMap['NOVO'], fill: '#94a3b8' } // slate-400
+      { name: 'Compraram', count: statusMap['COMPROU'], fill: '#10b981' },
+      { name: 'Em Negociação', count: statusMap['EM NEGOCIAÇÃO'], fill: '#f59e0b' },
+      { name: 'Curiosos', count: statusMap['CURIOSO'], fill: '#3b82f6' },
+      { name: 'Novos', count: statusMap['NOVO'], fill: '#94a3b8' }
     ];
 
     return { sourceData: parsedSourceData, statusData: parsedStatusData };

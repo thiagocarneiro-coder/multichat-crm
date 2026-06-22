@@ -1,51 +1,84 @@
-import { notFound } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import WhatsAppButton from './components/WhatsAppButton';
-import { Building2 } from 'lucide-react';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 
-export default async function BridgePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
-  const { slug } = await params;
+export default function BridgePage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Busca o workspace no banco para verificar se existe
-  const { data: workspace, error } = await supabase
-    .from('workspaces')
-    .select('id, name')
-    .eq('slug', slug)
-    .single();
+  useEffect(() => {
+    const fetchDestination = async () => {
+      try {
+        const slug = params?.slug as string;
+        if (!slug) return;
+        
+        console.log('🚀 Iniciando busca do destino para o slug:', slug);
 
-  if (error || !workspace) {
-    console.log('Buscando slug:', slug);
-    console.error('Erro ao buscar workspace:', error);
-    notFound();
+        const response = await fetch(`/api/get-instance-phone?slug=${slug}`, {
+          method: 'GET',
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        console.log('📥 Resposta do backend recebida. Status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error('Falha na resposta da API');
+        }
+        
+        const data = await response.json();
+
+        if (!data || !data.phone) {
+          setError('Destino não encontrado ou número não configurado no banco de dados.');
+          setLoading(false);
+          return;
+        }
+
+        const cleanPhone = String(data.phone).replace(/\D/g, '');
+        
+        if (cleanPhone.length < 10) {
+          setError('O número de telefone configurado é inválido.');
+          setLoading(false);
+          return;
+        }
+
+        const utmSource = searchParams.get('utm_source') || 'não informado';
+        const utmCampaign = searchParams.get('utm_campaign') || 'não informado';
+        const mensagem = `Olá! Vim pelo anúncio e gostaria de mais informações. [utm_source: ${utmSource}, utm_campaign: ${utmCampaign}]`;
+
+        setTimeout(() => {
+          window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensagem)}`;
+        }, 1500);
+
+      } catch (err) {
+        console.error('Erro na Bridge Page:', err);
+        setError('Erro de comunicação com o servidor.');
+        setLoading(false);
+      }
+    };
+
+    fetchDestination();
+  }, [params, searchParams]);
+
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-4">
+        <div className="text-center text-red-600 font-medium p-6 bg-white rounded-lg shadow-sm border border-red-100">
+          ⚠️ {error}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
-        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
-          <Building2 className="w-8 h-8" />
-        </div>
-        
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-2">
-          Atendimento {workspace.name}
-        </h1>
-        
-        <p className="text-slate-500 text-sm mb-8">
-          Você está sendo redirecionado para o nosso WhatsApp oficial. Clique no botão abaixo para iniciar a conversa.
-        </p>
-
-        <WhatsAppButton workspaceId={workspace.id} />
-        
-        <p className="mt-8 text-xs text-slate-400">
-          Atendimento seguro e imediato.
-        </p>
-      </div>
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-gray-50">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 mb-4"></div>
+      <p className="text-gray-600 font-medium">Aguarde, você está sendo direcionado para um atendente agora...</p>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
 export async function createWorkspace(name: string, slug: string) {
   // Verifica se slug já existe
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseAdmin
     .from('workspaces')
     .select('id')
     .eq('slug', slug)
@@ -15,7 +15,7 @@ export async function createWorkspace(name: string, slug: string) {
     throw new Error('Um cliente com esse identificador (slug) já existe. Escolha outro nome.');
   }
 
-  const { error: insertError } = await supabase
+  const { error: insertError } = await supabaseAdmin
     .from('workspaces')
     .insert([{ name, slug }]);
 

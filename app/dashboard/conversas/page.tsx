@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, MoreVertical, Send, User, Bot, Clock, MessageCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 interface Contact {
   id: string;
@@ -17,16 +17,16 @@ interface Contact {
 interface Message {
   id: string;
   contact_id: string;
-  sender: 'client' | 'system';
-  text: string;
+  role: 'user' | 'assistant';
+  content: string;
   created_at: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string, color: string }> = {
   'NOVO': { label: 'Novo', color: 'bg-slate-100 text-slate-700 border-slate-200' },
   'CURIOSO': { label: 'Curioso', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  'NEGOCIACAO': { label: 'Em Negociação', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  'VENDA_FECHADA': { label: 'Comprou', color: 'bg-green-100 text-green-800 border-green-200' },
+  'EM NEGOCIAÇÃO': { label: 'Em Negociação', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'COMPROU': { label: 'Comprou', color: 'bg-green-100 text-green-800 border-green-200' },
   'NAO_RESPONDE': { label: 'Não Responde', color: 'bg-red-100 text-red-800 border-red-200' }
 };
 
@@ -74,16 +74,18 @@ export default function ConversasPage() {
 
   // 2. Fetch das mensagens ao selecionar um contato e Realtime
   useEffect(() => {
-    if (!selectedContact) return;
+    if (!selectedContact?.id) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('id, contact_id, content, role, created_at')
         .eq('contact_id', selectedContact.id)
         .order('created_at', { ascending: true });
         
-      if (!error && data) {
+      if (error) {
+        console.error('Erro Supabase:', error.message, error.hint, error.details);
+      } else if (data) {
         setMessages(data);
       }
     };
@@ -144,14 +146,14 @@ export default function ConversasPage() {
               Curiosos
             </button>
             <button 
-              onClick={() => setFilterStatus('NEGOCIACAO')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'NEGOCIACAO' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
+              onClick={() => setFilterStatus('EM NEGOCIAÇÃO')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'EM NEGOCIAÇÃO' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
             >
               Em Negociação
             </button>
             <button 
-              onClick={() => setFilterStatus('VENDA_FECHADA')}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'VENDA_FECHADA' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+              onClick={() => setFilterStatus('COMPROU')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${filterStatus === 'COMPROU' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
             >
               Compraram
             </button>
@@ -254,13 +256,13 @@ export default function ConversasPage() {
               {messages.map((msg) => (
                 <div 
                   key={msg.id} 
-                  className={`flex ${msg.sender === 'client' ? 'justify-start' : 'justify-end'}`}
+                  className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}
                 >
-                  <div className={`flex max-w-[75%] gap-2 ${msg.sender === 'client' ? 'flex-row' : 'flex-row-reverse'}`}>
+                  <div className={`flex max-w-[75%] gap-2 ${msg.role === 'user' ? 'flex-row' : 'flex-row-reverse'}`}>
                     
                     {/* Avatar da mensagem */}
                     <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-auto mb-1">
-                      {msg.sender === 'client' ? (
+                      {msg.role === 'user' ? (
                          <div className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center">
                            <User className="w-4 h-4 text-slate-500" />
                          </div>
@@ -273,12 +275,12 @@ export default function ConversasPage() {
 
                     {/* Bolha da Mensagem */}
                     <div className={`p-3 rounded-2xl ${
-                      msg.sender === 'client' 
+                      msg.role === 'user' 
                         ? 'bg-white border border-slate-200 text-slate-700 rounded-bl-none shadow-sm' 
                         : 'bg-blue-600 text-white rounded-br-none shadow-md'
                     }`}>
-                      <p className="text-sm leading-relaxed">{msg.text}</p>
-                      <div className={`text-[10px] mt-1 text-right ${msg.sender === 'client' ? 'text-slate-400' : 'text-blue-200'}`}>
+                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      <div className={`text-[10px] mt-1 text-right ${msg.role === 'user' ? 'text-slate-400' : 'text-blue-200'}`}>
                         {formatTime(msg.created_at)}
                       </div>
                     </div>
@@ -293,7 +295,7 @@ export default function ConversasPage() {
               <div className="flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2">
                 <input 
                   type="text" 
-                  placeholder="Mensagens serão respondidas automaticamente pela IA..." 
+                  placeholder="Escreva uma mensagem para o lead..." 
                   className="flex-1 bg-transparent border-none outline-none text-sm text-slate-600 placeholder:text-slate-400"
                   disabled
                 />
