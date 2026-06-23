@@ -16,15 +16,30 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Buscar apenas os workspaces deste usuário
+  // Buscar workspaces do usuário
   const { data: workspaces } = await supabaseAdmin
     .from('workspaces')
-    .select('id, name, slug, stripe_plan')
+    .select('id, name, slug')
     .eq('user_id', user.id)
     .order('name');
 
-  // Determinar o plano ativo do usuário
-  const activePlan = workspaces?.find(w => w.stripe_plan)?.stripe_plan as PlanKey | undefined;
+  // Tentar buscar plano (coluna pode não existir ainda)
+  let activePlan: PlanKey | undefined;
+  try {
+    const { data: planData } = await supabaseAdmin
+      .from('workspaces')
+      .select('stripe_plan')
+      .eq('user_id', user.id)
+      .not('stripe_plan', 'is', null)
+      .limit(1)
+      .single();
+    if (planData?.stripe_plan) {
+      activePlan = planData.stripe_plan as PlanKey;
+    }
+  } catch {
+    // coluna pode não existir ainda
+  }
+
   const planConfig = activePlan ? PLANS[activePlan] : undefined;
 
   return (
