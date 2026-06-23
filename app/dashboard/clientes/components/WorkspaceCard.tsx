@@ -109,7 +109,8 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [metaPixelId, setMetaPixelId] = useState(workspace.meta_pixel_id || '');
   const [metaToken, setMetaToken] = useState(workspace.meta_access_token || '');
   const [savingMeta, setSavingMeta] = useState(false);
-  const [metaSaved, setMetaSaved] = useState(false);
+  const [metaConnected, setMetaConnected] = useState(!!(workspace.meta_pixel_id && workspace.meta_access_token));
+  const [editingMeta, setEditingMeta] = useState(false);
   const router = useRouter();
 
   // Usar a URL pública definida nas variáveis de ambiente, ou fallback para a origem local
@@ -261,6 +262,12 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
               WhatsApp Conectado
             </span>
           )}
+          {metaConnected && (
+            <span className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-100 rounded-lg flex items-center gap-1.5 border border-blue-200">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+              Meta Conectado
+            </span>
+          )}
           <button className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2">
             <Code2 className="w-3.5 h-3.5" />
             Configurações
@@ -278,57 +285,91 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
         <div className="px-6 pb-6 bg-slate-50 border-t border-slate-100">
 
           {/* Meta Ads CAPI Config */}
-          <div className="bg-white rounded-2xl p-5 mt-6 border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.5 0-10 4.49-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.52 1.49-3.93 3.78-3.93 1.09 0 2.23.19 2.23.19v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.45 2.9h-2.33v7a10 10 0 008.44-9.9c0-5.53-4.5-10.02-10-10.02z"/></svg>
-              Meta Ads — Conversions API
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
-              Configure para enviar conversões reais automaticamente ao Meta Ads e otimizar suas campanhas.
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Pixel ID</label>
-                <input
-                  type="text"
-                  value={metaPixelId}
-                  onChange={(e) => { setMetaPixelId(e.target.value); setMetaSaved(false); }}
-                  placeholder="Ex: 1234567890123456"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Access Token (CAPI)</label>
-                <input
-                  type="password"
-                  value={metaToken}
-                  onChange={(e) => { setMetaToken(e.target.value); setMetaSaved(false); }}
-                  placeholder="Token do System User do Meta Business"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-                />
-              </div>
-              <button
-                onClick={async () => {
-                  setSavingMeta(true);
-                  try {
-                    const res = await authenticatedFetch(`/api/workspaces/${workspace.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ meta_pixel_id: metaPixelId, meta_access_token: metaToken }),
-                    });
-                    if (res.ok) {
-                      setMetaSaved(true);
-                    }
-                  } catch {} finally {
-                    setSavingMeta(false);
-                  }
-                }}
-                disabled={savingMeta || (!metaPixelId && !metaToken)}
-                className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {savingMeta ? 'Salvando...' : metaSaved ? '✅ Salvo!' : 'Salvar configuração Meta'}
-              </button>
+          <div className={`bg-white rounded-2xl p-5 mt-6 border shadow-sm ${metaConnected ? 'border-blue-200' : 'border-slate-200'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.5 0-10 4.49-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.52 1.49-3.93 3.78-3.93 1.09 0 2.23.19 2.23.19v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.45 2.9h-2.33v7a10 10 0 008.44-9.9c0-5.53-4.5-10.02-10-10.02z"/></svg>
+                Meta Ads — Conversions API
+              </h3>
+              {metaConnected && !editingMeta && (
+                <span className="px-3 py-1 text-xs font-bold text-blue-700 bg-blue-50 rounded-full border border-blue-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  Conectado
+                </span>
+              )}
             </div>
+
+            {metaConnected && !editingMeta ? (
+              <div className="mt-3">
+                <p className="text-xs text-slate-500">Pixel ID: <span className="font-mono text-slate-700">{metaPixelId.slice(0, 6)}...{metaPixelId.slice(-4)}</span></p>
+                <button
+                  onClick={() => setEditingMeta(true)}
+                  className="mt-3 px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  Editar configuração
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500 mt-1 mb-4">
+                  Configure para enviar conversões reais automaticamente ao Meta Ads e otimizar suas campanhas.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Pixel ID</label>
+                    <input
+                      type="text"
+                      value={metaPixelId}
+                      onChange={(e) => setMetaPixelId(e.target.value)}
+                      placeholder="Ex: 1234567890123456"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Access Token (CAPI)</label>
+                    <input
+                      type="password"
+                      value={metaToken}
+                      onChange={(e) => setMetaToken(e.target.value)}
+                      placeholder="Token do System User do Meta Business"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        setSavingMeta(true);
+                        try {
+                          const res = await authenticatedFetch(`/api/workspaces/${workspace.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ meta_pixel_id: metaPixelId, meta_access_token: metaToken }),
+                          });
+                          if (res.ok) {
+                            setMetaConnected(!!(metaPixelId && metaToken));
+                            setEditingMeta(false);
+                          }
+                        } catch {} finally {
+                          setSavingMeta(false);
+                        }
+                      }}
+                      disabled={savingMeta || !metaPixelId || !metaToken}
+                      className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50"
+                    >
+                      {savingMeta ? 'Salvando...' : 'Salvar e conectar'}
+                    </button>
+                    {editingMeta && (
+                      <button
+                        onClick={() => setEditingMeta(false)}
+                        className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Botão Remover Cliente */}
