@@ -49,6 +49,9 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
+      subscription_data: {
+        trial_period_days: 14,
+      },
       metadata: {
         user_id: user.id,
         plan: plan,
