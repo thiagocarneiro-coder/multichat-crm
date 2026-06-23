@@ -16,10 +16,10 @@ import { MessageCircle, Shield, Clock, CheckCircle2 } from 'lucide-react';
 export default function BridgePage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const [countdown, setCountdown] = useState(5);
   const [error, setError] = useState<string | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [isAdTraffic, setIsAdTraffic] = useState(false);
 
   // 1. Buscar o telefone do workspace, registrar click_session, e montar URL de redirect
   useEffect(() => {
@@ -55,6 +55,10 @@ export default function BridgePage() {
         const fbclid = searchParams.get('fbclid') || '';
         const gclid = searchParams.get('gclid') || '';
 
+        // Detectar se veio de anúncio (tem UTMs ou click IDs)
+        const hasAdParams = !!(utmSource || fbclid || gclid);
+        setIsAdTraffic(hasAdParams);
+
         // 🔥 REGISTRAR CLICK_SESSION — essencial pro rastreamento funcionar!
         let sessionCode = '';
         try {
@@ -89,9 +93,13 @@ export default function BridgePage() {
     fetchDestination();
   }, [params, searchParams]);
 
-  // 2. Countdown de 5 segundos → redirect
+  // 2. Redirect: instantâneo pra botão de LP (2s), countdown pra anúncios (5s)
+  const countdownTime = isAdTraffic ? 5 : 2;
+  const [countdown, setCountdown] = useState(countdownTime);
+
   useEffect(() => {
     if (!redirectUrl) return;
+    setCountdown(isAdTraffic ? 5 : 2);
 
     const timer = setInterval(() => {
       setCountdown(prev => {
@@ -105,7 +113,7 @@ export default function BridgePage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [redirectUrl]);
+  }, [redirectUrl, isAdTraffic]);
 
   if (error) {
     return (
@@ -114,8 +122,8 @@ export default function BridgePage() {
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Clock className="w-8 h-8 text-amber-600" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 mb-2">Estamos preparando tudo</h1>
-          <p className="text-slate-500">{error}</p>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">WhatsApp não configurado</h1>
+          <p className="text-slate-500">Conecte o WhatsApp no painel do Tracker para ativar este link.</p>
         </div>
       </div>
     );
@@ -171,7 +179,7 @@ export default function BridgePage() {
                     cx="32" cy="32" r="28" fill="none" 
                     stroke="#10b981" strokeWidth="4" 
                     strokeLinecap="round"
-                    strokeDasharray={`${(countdown / 5) * 175.93} 175.93`}
+                    strokeDasharray={`${(countdown / countdownTime) * 175.93} 175.93`}
                     className="transition-all duration-1000 ease-linear"
                   />
                 </svg>
