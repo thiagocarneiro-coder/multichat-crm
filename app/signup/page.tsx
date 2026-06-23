@@ -1,19 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { UserPlus, Mail, Lock, User, Loader2, ArrowRight, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function SignupPage() {
+function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planFromUrl = searchParams.get('plan');
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +31,6 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
 
@@ -42,7 +42,24 @@ export default function SignupPage() {
       return;
     }
 
-    // Conta criada com sucesso — redirecionar para o dashboard
+    // Se veio do pricing com um plano, redirecionar para checkout
+    if (planFromUrl) {
+      try {
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planFromUrl }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+
     router.push('/dashboard');
     router.refresh();
   };
@@ -146,5 +163,13 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }

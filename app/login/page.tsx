@@ -133,7 +133,7 @@ function LoginForm() {
           <div className="mt-6 text-center">
             <p className="text-slate-500 text-sm">
               Não tem conta?{' '}
-              <Link href="/signup" className="text-blue-400 font-medium hover:text-blue-300 transition-colors">
+              <Link href={planFromUrl ? `/signup?plan=${planFromUrl}` : '/signup'} className="text-blue-400 font-medium hover:text-blue-300 transition-colors">
                 Criar conta grátis
               </Link>
             </p>
