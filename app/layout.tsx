@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "Riguetto Tracker — Rastreamento Inteligente de Leads para Agências",
   description: "Plataforma de rastreamento de leads com IA para agências de marketing e tráfego pago. Conecte campanhas ao WhatsApp, classifique leads automaticamente e visualize seu funil em tempo real.",
   keywords: ["rastreamento de leads", "tracker de campanhas", "agência de marketing", "WhatsApp leads", "funil de vendas", "IA para leads"],
+  icons: {
+    icon: '/icon.svg',
+  },
   openGraph: {
     title: "Riguetto Tracker",
     description: "Rastreamento inteligente de leads para agências de tráfego pago.",
