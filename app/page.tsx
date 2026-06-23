@@ -8,7 +8,8 @@ import {
   MessageCircle, 
   TrendingUp,
   Shield,
-  Sparkles
+  Sparkles,
+  CheckCircle
 } from 'lucide-react';
 
 export default function Home() {
@@ -29,12 +30,26 @@ export default function Home() {
           </div>
           <span className="text-xl font-bold tracking-tight">Riguetto <span className="text-blue-400">Tracker</span></span>
         </div>
-        <Link 
-          href="/dashboard" 
-          className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
-        >
-          Entrar →
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link 
+            href="/pricing" 
+            className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden sm:inline"
+          >
+            Planos
+          </Link>
+          <Link 
+            href="/login" 
+            className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+          >
+            Entrar
+          </Link>
+          <Link 
+            href="/signup" 
+            className="text-sm font-bold bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl transition-colors"
+          >
+            Criar conta
+          </Link>
+        </div>
       </nav>
 
       {/* Hero Section */}
@@ -58,13 +73,18 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link 
-            href="/dashboard" 
+            href="/signup" 
             className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold px-8 py-4 rounded-2xl text-lg shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.02]"
           >
-            Teste grátis por 14 dias
+            Começar agora
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <span className="text-sm text-slate-500">Sem cartão de crédito. Cancele quando quiser.</span>
+          <Link 
+            href="/pricing"
+            className="text-sm text-slate-400 hover:text-blue-400 transition-colors underline underline-offset-4"
+          >
+            Ver planos e preços
+          </Link>
         </div>
       </section>
 
@@ -134,7 +154,49 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust indicators */}
+      {/* Pricing preview */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 pb-32">
+        <h2 className="text-3xl md:text-4xl font-black text-center mb-4 tracking-tight">
+          Planos simples, sem surpresas
+        </h2>
+        <p className="text-slate-400 text-center mb-12">Escolha o plano ideal para sua agência</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { name: 'Starter', price: '97', desc: 'Para freelancers', features: ['1 workspace', '100 leads/mês', 'Dashboard básico'] },
+            { name: 'Pro', price: '197', desc: 'Para agências', features: ['5 workspaces', 'Leads ilimitados', 'IA classificação'], popular: true },
+            { name: 'Agency', price: '397', desc: 'Para operações', features: ['Ilimitado', 'Suporte prioritário', 'White-label'] },
+          ].map((plan) => (
+            <div key={plan.name} className={`bg-white/[0.03] border ${plan.popular ? 'border-blue-500/30 ring-1 ring-blue-500/20' : 'border-white/[0.06]'} rounded-2xl p-6 text-center`}>
+              {plan.popular && (
+                <span className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full mb-4">Mais popular</span>
+              )}
+              <h3 className="text-lg font-bold">{plan.name}</h3>
+              <p className="text-sm text-slate-500 mb-3">{plan.desc}</p>
+              <div className="mb-4">
+                <span className="text-sm text-slate-400">R$</span>
+                <span className="text-4xl font-black">{plan.price}</span>
+                <span className="text-sm text-slate-400">/mês</span>
+              </div>
+              <ul className="space-y-2 mb-6 text-left">
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-slate-300">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link 
+                href="/pricing" 
+                className={`block w-full py-2.5 rounded-xl text-sm font-bold transition-colors ${plan.popular ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+              >
+                Escolher plano
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA final */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20">
         <div className="bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-3xl p-10 text-center">
           <div className="flex flex-wrap justify-center gap-8 mb-8">
@@ -152,12 +214,12 @@ export default function Home() {
             </div>
           </div>
           <h2 className="text-2xl md:text-3xl font-black mb-4">Pronto para rastrear cada lead?</h2>
-          <p className="text-slate-400 mb-8">Comece agora e veja de onde seus resultados realmente vêm.</p>
+          <p className="text-slate-400 mb-8">Crie sua conta e conecte o WhatsApp em minutos.</p>
           <Link 
-            href="/dashboard" 
+            href="/signup" 
             className="inline-flex items-center gap-2 bg-white text-slate-900 font-bold px-8 py-4 rounded-2xl text-lg hover:bg-slate-100 transition-colors shadow-xl"
           >
-            Teste grátis por 14 dias
+            Criar conta grátis
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -165,12 +227,18 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 max-w-7xl mx-auto px-6 py-8 border-t border-white/5">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Target className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="text-sm font-semibold text-slate-400">Riguetto Tracker</span>
+          </div>
+          <div className="flex items-center gap-6 text-xs text-slate-500">
+            <Link href="/pricing" className="hover:text-slate-300 transition-colors">Planos</Link>
+            <Link href="/termos" className="hover:text-slate-300 transition-colors">Termos de Uso</Link>
+            <Link href="/privacidade" className="hover:text-slate-300 transition-colors">Privacidade</Link>
+            <a href="https://wa.me/553182324668" target="_blank" rel="noopener" className="hover:text-slate-300 transition-colors">Contato</a>
           </div>
           <p className="text-xs text-slate-600">© {new Date().getFullYear()} Riguetto Tracker. Todos os direitos reservados.</p>
         </div>
