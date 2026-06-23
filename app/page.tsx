@@ -159,7 +159,7 @@ export default function Home() {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { name: 'Starter', price: '97', desc: 'Para freelancers', features: ['1 workspace', '100 leads/mês', 'Dashboard básico'] },
+            { name: 'Starter', price: '97', desc: 'Para freelancers', features: ['1 workspace', 'Leads ilimitados', 'Dashboard completo'] },
             { name: 'Pro', price: '197', desc: 'Para agências', features: ['5 workspaces', 'Leads ilimitados', 'IA classificação'], popular: true },
             { name: 'Agency', price: '397', desc: 'Para operações', features: ['Ilimitado', 'Suporte prioritário', 'White-label'] },
           ].map((plan) => (

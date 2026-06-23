@@ -8,8 +8,8 @@ export const PLANS = {
     priceId: 'price_1TlJocFW48jZ8SzwvUalCuTa',
     price: 97,
     maxWorkspaces: 1,
-    maxLeads: 100,
-    features: ['1 workspace', '100 leads/mês', 'Rastreamento de origem', 'Dashboard básico'],
+    maxLeads: -1,
+    features: ['1 workspace', 'Leads ilimitados', 'Rastreamento de origem', 'Dashboard completo'],
   },
   pro: {
     name: 'Pro',
