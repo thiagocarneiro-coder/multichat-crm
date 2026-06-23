@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { validateCronRequest } from '@/lib/auth';
 import { analyzeLeadFull } from '@/lib/ai';
 import { sendMetaPurchase } from '@/lib/meta-capi';
+import { sendGooglePurchase } from '@/lib/google-ads';
 import { fireWebhooks } from '@/lib/webhooks';
 
 export const maxDuration = 60;
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
 
     let processados = 0;
     let conversoesMeta = 0;
+    let conversoesGoogle = 0;
 
     for (const contact of contacts) {
       // Buscar últimas 15 mensagens
@@ -86,10 +88,15 @@ export async function GET(request: Request) {
           }
         }
 
-        // 🔥 KILLER FEATURE: Se mudou para COMPROU, enviar conversão pro Meta Ads
+        // 🔥 KILLER FEATURE: Se mudou para COMPROU, enviar conversões
         if (statusChanged && analysis.status === 'COMPROU') {
+          // Meta Ads CAPI
           await sendConversionToMeta(contact.phone, analysis.sale_value);
           conversoesMeta++;
+
+          // Google Ads via GA4
+          const googleSent = await sendConversionToGoogle(contact.phone, analysis.sale_value);
+          if (googleSent) conversoesGoogle++;
         }
 
         // 🔔 WEBHOOK: Disparar quando status mudar
@@ -122,10 +129,10 @@ export async function GET(request: Request) {
     }
 
     console.log(`\n=============================================`);
-    console.log(`✅ CRON finalizado! ${processados} atualizados, ${conversoesMeta} conversões Meta.`);
+    console.log(`✅ CRON finalizado! ${processados} atualizados, ${conversoesMeta} conversões Meta, ${conversoesGoogle} conversões Google.`);
     console.log(`=============================================\n`);
     
-    return NextResponse.json({ success: true, processados, conversoesMeta, total: contacts.length });
+    return NextResponse.json({ success: true, processados, conversoesMeta, conversoesGoogle, total: contacts.length });
 
   } catch (error) {
     console.error('❌ Erro no CRON:', error);
@@ -197,5 +204,71 @@ async function sendConversionToMeta(phone: string, saleValue: number | null) {
     }
   } catch (error) {
     console.error(`❌ Erro ao enviar conversão Meta:`, error);
+  }
+}/**
+ * Envia a conversão para o Google Ads via GA4 Measurement Protocol
+ * para workspaces que tenham GA4 configurado e click_session com gclid.
+ */
+async function sendConversionToGoogle(phone: string, saleValue: number | null): Promise<boolean> {
+  try {
+    // Buscar leads com esse telefone que tenham click_session com gclid
+    const { data: leads } = await supabaseAdmin
+      .from('leads')
+      .select(`
+        workspace_id,
+        phone_number,
+        click_sessions (
+          gclid,
+          utm_source
+        )
+      `)
+      .eq('phone_number', phone);
+
+    if (!leads || leads.length === 0) return false;
+
+    let sent = false;
+    for (const lead of leads) {
+      // Buscar config Google do workspace
+      const { data: workspace } = await supabaseAdmin
+        .from('workspaces')
+        .select('ga4_measurement_id, ga4_api_secret')
+        .eq('id', lead.workspace_id)
+        .single();
+
+      if (!workspace?.ga4_measurement_id || !workspace?.ga4_api_secret) {
+        console.log(`⏭️ Workspace ${lead.workspace_id} sem GA4 configurado.`);
+        continue;
+      }
+
+      const clickSession = lead.click_sessions as any;
+      const gclid = clickSession?.gclid || undefined;
+
+      // Só enviar se a origem for Google (ou se tiver gclid)
+      const isGoogleOrigin = clickSession?.utm_source?.includes('google') ||
+                             clickSession?.utm_source === 'cpc' ||
+                             !!gclid;
+
+      if (!isGoogleOrigin) {
+        console.log(`⏭️ Lead ${phone} não veio do Google Ads, pulando GA4.`);
+        continue;
+      }
+
+      const result = await sendGooglePurchase({
+        measurementId: workspace.ga4_measurement_id,
+        apiSecret: workspace.ga4_api_secret,
+        phone,
+        saleValue: saleValue || undefined,
+        gclid,
+      });
+
+      if (result) {
+        console.log(`🎯 Conversão Purchase enviada ao Google para ${phone}!`);
+        sent = true;
+      }
+    }
+    return sent;
+  } catch (error) {
+    console.error(`❌ Erro ao enviar conversão Google:`, error);
+    return false;
   }
 }

@@ -32,7 +32,7 @@ export async function PATCH(
     }
 
     // Campos permitidos para update
-    const allowedFields = ['meta_pixel_id', 'meta_access_token', 'phone', 'webhook_url'];
+    const allowedFields = ['meta_pixel_id', 'meta_access_token', 'phone', 'webhook_url', 'ga4_measurement_id', 'ga4_api_secret'];
     const updateData: Record<string, any> = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
