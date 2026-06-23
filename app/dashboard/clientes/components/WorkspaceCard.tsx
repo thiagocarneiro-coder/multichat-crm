@@ -93,6 +93,7 @@ type Workspace = {
   meta_pixel_id?: string | null;
   meta_access_token?: string | null;
   webhook_url?: string | null;
+  share_token?: string | null;
 };
 
 export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
@@ -116,6 +117,9 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [savingWebhook, setSavingWebhook] = useState(false);
   const [webhookConnected, setWebhookConnected] = useState(!!workspace.webhook_url);
   const [editingWebhook, setEditingWebhook] = useState(false);
+  const [shareToken, setShareToken] = useState(workspace.share_token || '');
+  const [generatingShare, setGeneratingShare] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
   const router = useRouter();
 
   // Usar a URL pública definida nas variáveis de ambiente, ou fallback para a origem local
@@ -452,6 +456,86 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                     )}
                   </div>
                 </div>
+              </>
+            )}
+          </div>
+
+          {/* Dashboard Compartilhável */}
+          <div className={`bg-white rounded-2xl p-5 mt-4 border shadow-sm ${shareToken ? 'border-indigo-200' : 'border-slate-200'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                Dashboard para Clientes
+              </h3>
+              {shareToken && (
+                <span className="px-3 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 rounded-full border border-indigo-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                  Ativo
+                </span>
+              )}
+            </div>
+
+            {shareToken ? (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-slate-500">Seu cliente pode acessar o dashboard por este link (somente leitura):</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${appDomain}/share/${shareToken}`}
+                    className="flex-1 px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg text-slate-700"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${appDomain}/share/${shareToken}`);
+                      setCopiedShare(true);
+                      setTimeout(() => setCopiedShare(false), 2000);
+                    }}
+                    className={`px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                      copiedShare
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                    }`}
+                  >
+                    {copiedShare ? '✓ Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Revogar acesso? O link atual deixará de funcionar.')) return;
+                    try {
+                      const res = await authenticatedFetch(`/api/workspaces/${workspace.id}/share`, { method: 'DELETE' });
+                      if (res.ok) setShareToken('');
+                    } catch {}
+                  }}
+                  className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
+                >
+                  Revogar acesso
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500 mt-1 mb-3">
+                  Gere um link público para seu cliente acompanhar as métricas em tempo real, sem precisar de login.
+                </p>
+                <button
+                  onClick={async () => {
+                    setGeneratingShare(true);
+                    try {
+                      const res = await authenticatedFetch(`/api/workspaces/${workspace.id}/share`, { method: 'POST' });
+                      if (res.ok) {
+                        const data = await res.json();
+                        setShareToken(data.share_token);
+                      }
+                    } catch {} finally {
+                      setGeneratingShare(false);
+                    }
+                  }}
+                  disabled={generatingShare}
+                  className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50"
+                >
+                  {generatingShare ? 'Gerando...' : 'Gerar link compartilhável'}
+                </button>
               </>
             )}
           </div>

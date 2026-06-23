@@ -26,6 +26,7 @@ const PUBLIC_ROUTES = [
   '/api/redirect',
   '/api/cron',
   '/api/stripe',
+  '/api/share',
   '/go/',
   '/login',
   '/signup',
