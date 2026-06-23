@@ -12,7 +12,6 @@ export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
-  // Se tiver webhook secret configurado, valida a assinatura
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let event: Stripe.Event;
@@ -21,7 +20,6 @@ export async function POST(request: Request) {
     if (webhookSecret && signature) {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } else {
-      // Em desenvolvimento/teste, aceita sem validação
       event = JSON.parse(body) as Stripe.Event;
     }
   } catch (err: any) {
@@ -38,19 +36,25 @@ export async function POST(request: Request) {
         const userId = session.metadata?.user_id;
         const plan = session.metadata?.plan;
         const customerId = session.customer as string;
+        const subscriptionId = session.subscription as string;
 
         if (userId && plan) {
-          // Atualizar TODOS os workspaces do usuário com o plano e customer ID
-          await supabaseAdmin
+          // Atualizar TODOS os workspaces do usuário com o plano
+          const { error } = await supabaseAdmin
             .from('workspaces')
             .update({
               plan,
               stripe_customer_id: customerId,
-              plan_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // +30 dias
+              stripe_subscription_id: subscriptionId,
+              plan_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             })
             .eq('user_id', userId);
 
-          console.log(`[Stripe] ✅ Plano ${plan} ativado para user ${userId}`);
+          if (error) {
+            console.error(`[Stripe] ❌ Erro ao atualizar plano:`, error.message);
+          } else {
+            console.log(`[Stripe] ✅ Plano ${plan} ativado para user ${userId} (customer: ${customerId})`);
+          }
         }
         break;
       }
@@ -78,10 +82,21 @@ export async function POST(request: Request) {
         // Downgrade para free
         await supabaseAdmin
           .from('workspaces')
-          .update({ plan: 'free', plan_expires_at: null })
+          .update({ plan: 'free', plan_expires_at: null, stripe_subscription_id: null })
           .eq('stripe_customer_id', customerId);
 
         console.log(`[Stripe] ❌ Assinatura cancelada para customer ${customerId}`);
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+
+        // Verificar se foi cancelada com agendamento
+        if (subscription.cancel_at_period_end) {
+          console.log(`[Stripe] ⏳ Assinatura será cancelada no fim do período para customer ${customerId}`);
+        }
         break;
       }
     }

@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { User, Mail, Lock, CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, CreditCard, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { authenticatedFetch } from '@/lib/api';
 
 type Props = {
   userEmail: string;
   userName: string;
   planName: string | null;
-  subscriptionId: string | null;
+  stripeCustomerId: string | null;
 };
 
 const PLAN_LABELS: Record<string, string> = {
@@ -18,9 +19,8 @@ const PLAN_LABELS: Record<string, string> = {
   agency: 'Agency — R$397/mês',
 };
 
-export default function SettingsClient({ userEmail, userName, planName, subscriptionId }: Props) {
+export default function SettingsClient({ userEmail, userName, planName, stripeCustomerId }: Props) {
   const [name, setName] = useState(userName);
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -54,8 +54,24 @@ export default function SettingsClient({ userEmail, userName, planName, subscrip
       setMessage({ type: 'error', text: error.message });
     } else {
       setMessage({ type: 'success', text: 'Senha alterada com sucesso!' });
-      setCurrentPassword('');
       setNewPassword('');
+    }
+    setLoading('');
+  };
+
+  const handleOpenPortal = async () => {
+    setLoading('portal');
+    setMessage(null);
+    try {
+      const res = await authenticatedFetch('/api/stripe/portal', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Erro ao abrir portal' });
+      }
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message });
     }
     setLoading('');
   };
@@ -136,8 +152,8 @@ export default function SettingsClient({ userEmail, userName, planName, subscrip
         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-slate-400" /> Assinatura
         </h2>
-        {planName ? (
-          <div className="space-y-3">
+        {planName && planName !== 'free' ? (
+          <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
               <div>
                 <p className="font-bold text-slate-900">{PLAN_LABELS[planName] || planName}</p>
@@ -145,9 +161,24 @@ export default function SettingsClient({ userEmail, userName, planName, subscrip
               </div>
               <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">Ativo</span>
             </div>
+            
+            {stripeCustomerId && (
+              <button
+                onClick={handleOpenPortal}
+                disabled={loading === 'portal'}
+                className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                {loading === 'portal' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ExternalLink className="w-4 h-4" />
+                )}
+                Gerenciar Assinatura (Stripe)
+              </button>
+            )}
+            
             <p className="text-xs text-slate-400">
-              Para gerenciar sua assinatura, acesse o portal do cliente Stripe ou entre em contato pelo{' '}
-              <a href="https://wa.me/553182324668" className="text-blue-500">WhatsApp</a>.
+              No portal Stripe você pode alterar cartão, ver faturas ou cancelar a assinatura.
             </p>
           </div>
         ) : (
