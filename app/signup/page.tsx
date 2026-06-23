@@ -42,32 +42,10 @@ export default function SignupPage() {
       return;
     }
 
-    setSuccess(true);
-    setLoading(false);
+    // Conta criada com sucesso — redirecionar para o dashboard
+    router.push('/dashboard');
+    router.refresh();
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Verifique seu email</h1>
-          <p className="text-slate-400 mb-6">
-            Enviamos um link de confirmação para <strong className="text-white">{email}</strong>.
-            Clique no link para ativar sua conta.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-500 transition-colors text-sm"
-          >
-            Ir para o Login <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
