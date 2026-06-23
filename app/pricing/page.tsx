@@ -81,9 +81,10 @@ export default function PricingPage() {
           <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
             Escolha seu plano
           </h1>
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-3">
             Rastreie a origem de cada lead do WhatsApp. Comece pequeno e escale conforme cresce.
           </p>
+          <p className="text-emerald-400 font-medium">✨ 14 dias grátis em todos os planos</p>
         </div>
 
         {/* Pricing Cards */}
@@ -121,6 +122,7 @@ export default function PricingPage() {
                     <span className="text-5xl font-extrabold text-white">{plan.price}</span>
                     <span className="text-slate-400 text-sm">/mês</span>
                   </div>
+                  <p className="text-xs text-emerald-400 mt-1">14 dias grátis</p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
@@ -140,7 +142,7 @@ export default function PricingPage() {
                   {loading === key ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Começar agora'
+                    'Testar 14 dias grátis'
                   )}
                 </button>
               </div>
@@ -151,7 +153,7 @@ export default function PricingPage() {
         {/* FAQ / Trust signals */}
         <div className="text-center mt-16 space-y-3">
           <p className="text-slate-500 text-sm">
-            💳 Pagamento seguro via Stripe · Cancele quando quiser · Teste grátis de 7 dias
+            💳 Pagamento seguro via Stripe · Cancele quando quiser · 14 dias grátis
           </p>
           <p className="text-slate-600 text-xs">
             Precisa de algo personalizado? <a href="https://wa.me/553182324668" className="text-blue-400 hover:text-blue-300">Fale conosco</a>

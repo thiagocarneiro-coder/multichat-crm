@@ -76,15 +76,10 @@ export default function Home() {
             href="/signup" 
             className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold px-8 py-4 rounded-2xl text-lg shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.02]"
           >
-            Começar agora
+            Teste grátis por 14 dias
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <Link 
-            href="/pricing"
-            className="text-sm text-slate-400 hover:text-blue-400 transition-colors underline underline-offset-4"
-          >
-            Ver planos e preços
-          </Link>
+          <span className="text-sm text-slate-500">Sem cobrança durante o período de teste. Cancele quando quiser.</span>
         </div>
       </section>
 
@@ -159,7 +154,8 @@ export default function Home() {
         <h2 className="text-3xl md:text-4xl font-black text-center mb-4 tracking-tight">
           Planos simples, sem surpresas
         </h2>
-        <p className="text-slate-400 text-center mb-12">Escolha o plano ideal para sua agência</p>
+        <p className="text-slate-400 text-center mb-4">Escolha o plano ideal para sua agência</p>
+        <p className="text-emerald-400 text-center mb-12 text-sm font-medium">✨ Todos os planos com 14 dias grátis</p>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
@@ -189,7 +185,7 @@ export default function Home() {
                 href="/pricing" 
                 className={`block w-full py-2.5 rounded-xl text-sm font-bold transition-colors ${plan.popular ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
               >
-                Escolher plano
+                Testar 14 dias grátis
               </Link>
             </div>
           ))}
@@ -214,12 +210,12 @@ export default function Home() {
             </div>
           </div>
           <h2 className="text-2xl md:text-3xl font-black mb-4">Pronto para rastrear cada lead?</h2>
-          <p className="text-slate-400 mb-8">Crie sua conta e conecte o WhatsApp em minutos.</p>
+          <p className="text-slate-400 mb-8">Teste grátis por 14 dias. Sem compromisso, cancele quando quiser.</p>
           <Link 
             href="/signup" 
             className="inline-flex items-center gap-2 bg-white text-slate-900 font-bold px-8 py-4 rounded-2xl text-lg hover:bg-slate-100 transition-colors shadow-xl"
           >
-            Criar conta grátis
+            Começar teste grátis
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
