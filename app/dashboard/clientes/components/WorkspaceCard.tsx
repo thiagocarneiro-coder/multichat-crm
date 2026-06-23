@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle, Smartphone, QrCode, Loader2 } from 'lucide-react';
+import { Building2, Calendar, Link as LinkIcon, Code2, ChevronDown, ChevronUp, Copy, Check, Terminal, MessageCircle, Smartphone, QrCode, Loader2, Trash2 } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 // ─── Componente reutilizável para cada link de rastreamento ───
 function TrackingLinkBlock({ step, emoji, title, subtitle, link, instructions, color }: {
@@ -102,6 +103,8 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<'open' | 'connecting' | 'close'>('close');
   const [activeInstanceName, setActiveInstanceName] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
 
   // Usar a URL pública definida nas variáveis de ambiente, ou fallback para a origem local
   const appDomain = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com');
@@ -267,6 +270,39 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       {/* Área Expandida com Instruções */}
       {isExpanded && (
         <div className="px-6 pb-6 bg-slate-50 border-t border-slate-100">
+
+          {/* Botão Remover Cliente */}
+          <div className="bg-white rounded-2xl p-5 mt-6 border border-red-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Remover Cliente</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Remove o workspace e todos os leads associados. Esta ação não pode ser desfeita.</p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm(`Tem certeza que deseja remover "${workspace.name}"? Todos os leads serão perdidos.`)) return;
+                  setIsDeleting(true);
+                  try {
+                    const res = await authenticatedFetch(`/api/workspaces/${workspace.id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                      router.refresh();
+                    } else {
+                      const data = await res.json();
+                      alert(data.error || 'Erro ao remover');
+                    }
+                  } catch (e: any) {
+                    alert('Erro: ' + e.message);
+                  }
+                  setIsDeleting(false);
+                }}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? 'Removendo...' : 'Remover'}
+              </button>
+            </div>
+          </div>
           
           {/* Conexão WhatsApp (Evolution API) */}
           <div className="bg-white rounded-2xl p-6 mt-6 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
