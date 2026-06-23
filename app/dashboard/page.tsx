@@ -9,7 +9,9 @@ import {
   Megaphone, 
   CalendarDays,
   Inbox,
-  Building2
+  Building2,
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import DashboardCharts from './components/DashboardCharts';
 
@@ -88,6 +90,24 @@ export default async function DashboardPage() {
   const totalSales = leads?.filter((l) => l.status === 'COMPROU').length || 0;
   const conversionRate = totalLeads > 0 ? ((totalSales / totalLeads) * 100).toFixed(1) : '0.0';
 
+  // Buscar receita dos contacts (sale_value)
+  let totalRevenue = 0;
+  let avgTicket = 0;
+  try {
+    const { data: salesData } = await supabaseAdmin
+      .from('contacts')
+      .select('sale_value')
+      .not('sale_value', 'is', null)
+      .gt('sale_value', 0);
+    
+    if (salesData && salesData.length > 0) {
+      totalRevenue = salesData.reduce((sum: number, s: any) => sum + (s.sale_value || 0), 0);
+      avgTicket = totalRevenue / salesData.length;
+    }
+  } catch {
+    // coluna pode não existir ainda
+  }
+
   return (
     <div className="py-8 px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -97,42 +117,72 @@ export default async function DashboardPage() {
       </div>
 
       {/* Top Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Card 1: Total Leads */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total de Leads</p>
-              <p className="text-4xl font-black text-slate-900 mt-2">{totalLeads}</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Leads</p>
+              <p className="text-3xl font-black text-slate-900 mt-1">{totalLeads}</p>
             </div>
-            <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
-              <Users className="w-7 h-7" />
+            <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+              <Users className="w-5 h-5" />
             </div>
           </div>
         </div>
 
         {/* Card 2: Vendas Fechadas */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Vendas Fechadas</p>
-              <p className="text-4xl font-black text-slate-900 mt-2">{totalSales}</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vendas</p>
+              <p className="text-3xl font-black text-slate-900 mt-1">{totalSales}</p>
             </div>
-            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
-              <Trophy className="w-7 h-7" />
+            <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+              <Trophy className="w-5 h-5" />
             </div>
           </div>
         </div>
 
         {/* Card 3: Taxa de Conversão */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Conversão Real</p>
-              <p className="text-4xl font-black text-slate-900 mt-2">{conversionRate}%</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversão</p>
+              <p className="text-3xl font-black text-slate-900 mt-1">{conversionRate}%</p>
             </div>
-            <div className="w-14 h-14 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">
-              <BarChart3 className="w-7 h-7" />
+            <div className="w-11 h-11 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">
+              <BarChart3 className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Receita Total */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Receita</p>
+              <p className="text-3xl font-black text-emerald-600 mt-1">
+                {totalRevenue > 0 ? `R$${totalRevenue.toLocaleString('pt-BR')}` : 'R$0'}
+              </p>
+            </div>
+            <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+              <DollarSign className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 5: Ticket Médio */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ticket Médio</p>
+              <p className="text-3xl font-black text-slate-900 mt-1">
+                {avgTicket > 0 ? `R$${avgTicket.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` : 'R$0'}
+              </p>
+            </div>
+            <div className="w-11 h-11 bg-amber-50 rounded-full flex items-center justify-center text-amber-600">
+              <TrendingUp className="w-5 h-5" />
             </div>
           </div>
         </div>
