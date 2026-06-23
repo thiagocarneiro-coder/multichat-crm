@@ -21,7 +21,7 @@ export default function BridgePage() {
   const [phone, setPhone] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // 1. Buscar o telefone do workspace e montar URL de redirect
+  // 1. Buscar o telefone do workspace, registrar click_session, e montar URL de redirect
   useEffect(() => {
     const fetchDestination = async () => {
       try {
@@ -35,7 +35,7 @@ export default function BridgePage() {
         if (!response.ok) throw new Error('Falha na resposta da API');
         
         const data = await response.json();
-        if (!data?.phone) {
+        if (!data?.phone || !data?.workspace_id) {
           setError('Serviço temporariamente indisponível. Tente novamente em instantes.');
           return;
         }
@@ -48,9 +48,37 @@ export default function BridgePage() {
 
         setPhone(cleanPhone);
 
-        const utmSource = searchParams.get('utm_source') || 'direto';
-        const utmCampaign = searchParams.get('utm_campaign') || 'não informado';
-        const mensagem = `Olá! Gostaria de mais informações. [utm_source: ${utmSource}, utm_campaign: ${utmCampaign}]`;
+        // Capturar todos os parâmetros de rastreamento
+        const utmSource = searchParams.get('utm_source') || '';
+        const utmMedium = searchParams.get('utm_medium') || '';
+        const utmCampaign = searchParams.get('utm_campaign') || '';
+        const fbclid = searchParams.get('fbclid') || '';
+        const gclid = searchParams.get('gclid') || '';
+
+        // 🔥 REGISTRAR CLICK_SESSION — essencial pro rastreamento funcionar!
+        let sessionCode = '';
+        try {
+          const sessionRes = await fetch('/api/tracking/create-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              workspace_id: data.workspace_id,
+              utm_source: utmSource || null,
+              utm_medium: utmMedium || null,
+              utm_campaign: utmCampaign || null,
+              fbclid: fbclid || null,
+              gclid: gclid || null,
+            }),
+          });
+          const sessionData = await sessionRes.json();
+          sessionCode = sessionData.session_code || '';
+        } catch (err) {
+          console.error('Erro ao criar click_session:', err);
+        }
+
+        // Montar mensagem com código de rastreamento
+        const trackPart = sessionCode ? ` [${sessionCode}]` : '';
+        const mensagem = `Olá! Gostaria de mais informações.${trackPart}`;
         setRedirectUrl(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensagem)}`);
 
       } catch (err) {

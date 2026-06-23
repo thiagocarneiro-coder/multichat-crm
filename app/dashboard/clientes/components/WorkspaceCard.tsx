@@ -132,20 +132,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   // Usar a URL pública definida nas variáveis de ambiente, ou fallback para a origem local
   const appDomain = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://seusaas.com');
 
-  const scriptContent = `<script>
-  // Script de Interceptação - GTM
-  fetch('${appDomain}/api/track', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      workspace: '${workspace.slug}',
-      url: window.location.href,
-      // outros dados customizados
-    })
-  });
-</script>`;
-
-  const whatsappLink = `https://wa.me/SEU_NUMERO_AQUI?text=Olá, vim pelo anúncio! [TRACK-{{telefone}}]`;
+  const bridgeUrl = `${appDomain}/go/${workspace.slug}`;
 
   const copyToClipboard = (text: string, type: 'script' | 'link' | 'bridge') => {
     navigator.clipboard.writeText(text);
@@ -300,7 +287,41 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       {isExpanded && (
         <div className="px-6 pb-6 bg-slate-50 border-t border-slate-100">
 
-          {/* Meta Ads CAPI Config */}
+          {/* Link de Rastreamento (Bridge Page) */}
+          <div className="bg-white rounded-2xl p-5 mt-6 border border-emerald-200 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-1">
+              <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              Link de Rastreamento
+            </h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Use este link nos seus anúncios (Meta Ads, Google Ads). Ele captura UTMs, fbclid e gclid automaticamente.
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={bridgeUrl}
+                className="flex-1 px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg text-slate-700"
+              />
+              <button
+                onClick={() => copyToClipboard(bridgeUrl, 'bridge')}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                  copiedBridge
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                }`}
+              >
+                {copiedBridge ? '✓ Copiado!' : 'Copiar'}
+              </button>
+            </div>
+            <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-600 mb-1">Exemplo de URL com UTMs:</p>
+              <code className="text-[10px] text-slate-500 break-all">
+                {bridgeUrl}?utm_source=meta&utm_campaign=minha-campanha
+              </code>
+            </div>
+          </div>
+
           <div className={`bg-white rounded-2xl p-5 mt-6 border shadow-sm ${metaConnected ? 'border-blue-200' : 'border-slate-200'}`}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">

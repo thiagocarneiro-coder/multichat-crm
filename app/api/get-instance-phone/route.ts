@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabaseAdmin
       .from('workspaces') 
-      .select('phone')
+      .select('id, phone')
       .eq('slug', slug)
       .single();
 
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Destino não encontrado' }, { status: 404 });
     }
 
-    return NextResponse.json({ phone: data.phone }, { status: 200 });
+    return NextResponse.json({ phone: data.phone, workspace_id: data.id }, { status: 200 });
 
   } catch (error) {
     console.error('Erro fatal na API get-instance-phone:', error);
