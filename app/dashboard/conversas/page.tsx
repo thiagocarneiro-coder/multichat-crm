@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, MoreVertical, Send, User, Bot, Clock, MessageCircle, Globe, Target } from 'lucide-react';
+import { Search, MoreVertical, User, Bot, Clock, MessageCircle, Globe, Target } from 'lucide-react';
 import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 interface Contact {
@@ -282,11 +282,22 @@ export default function ConversasPage() {
 
             {/* Histórico de Mensagens */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="flex justify-center mb-6">
-                <span className="bg-slate-200 text-slate-600 text-xs px-3 py-1 rounded-full flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Hoje
-                </span>
-              </div>
+              {messages.length > 0 && (() => {
+                const firstDate = new Date(messages[0].created_at);
+                const today = new Date();
+                const isToday = firstDate.toDateString() === today.toDateString();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const isYesterday = firstDate.toDateString() === yesterday.toDateString();
+                const label = isToday ? 'Hoje' : isYesterday ? 'Ontem' : firstDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+                return (
+                  <div className="flex justify-center mb-6">
+                    <span className="bg-slate-200 text-slate-600 text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {label}
+                    </span>
+                  </div>
+                );
+              })()}
               
               {messages.map((msg) => (
                 <div 
@@ -325,21 +336,10 @@ export default function ConversasPage() {
               ))}
             </div>
 
-            {/* Input de Mensagem (Desativado no mock) */}
-            <div className="p-4 bg-white border-t border-slate-200">
-              <div className="flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2">
-                <input 
-                  type="text" 
-                  placeholder="Escreva uma mensagem para o lead..." 
-                  className="flex-1 bg-transparent border-none outline-none text-sm text-slate-600 placeholder:text-slate-400"
-                  disabled
-                />
-                <button disabled className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 cursor-not-allowed">
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-center text-[10px] text-slate-400 mt-2">
-                * As respostas são gerenciadas pelo agente de IA. A intervenção manual será liberada na próxima versão.
+            {/* Rodapé somente leitura */}
+            <div className="p-3 bg-slate-50 border-t border-slate-200">
+              <p className="text-center text-xs text-slate-400">
+                📖 Modo visualização — as conversas são capturadas automaticamente via WhatsApp.
               </p>
             </div>
           </>
