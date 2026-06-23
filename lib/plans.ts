@@ -5,7 +5,7 @@
 export const PLANS = {
   starter: {
     name: 'Starter',
-    priceId: 'price_1TlFUbFW48jZ8SzwP1xemTz0',
+    priceId: 'price_1TlJocFW48jZ8SzwvUalCuTa',
     price: 97,
     maxWorkspaces: 1,
     maxLeads: 100,
@@ -13,7 +13,7 @@ export const PLANS = {
   },
   pro: {
     name: 'Pro',
-    priceId: 'price_1TlFUbFW48jZ8SzwSZaCK8tt',
+    priceId: 'price_1TlJodFW48jZ8SzwPvdEF3CM',
     price: 197,
     maxWorkspaces: 5,
     maxLeads: -1,
@@ -21,7 +21,7 @@ export const PLANS = {
   },
   agency: {
     name: 'Agency',
-    priceId: 'price_1TlFUcFW48jZ8SzwkSHuBCGt',
+    priceId: 'price_1TlJodFW48jZ8Szw2MPRrOJV',
     price: 397,
     maxWorkspaces: -1,
     maxLeads: -1,
