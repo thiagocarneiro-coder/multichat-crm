@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { validateCronRequest } from '@/lib/auth';
 import { analyzeLeadFull } from '@/lib/ai';
+import { sendMetaPurchase } from '@/lib/meta-capi';
 
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {
-    // Security: validate Vercel Cron Secret
     const auth = validateCronRequest(request);
     if (!auth.valid) return auth.response!;
 
@@ -22,22 +22,22 @@ export async function GET(request: Request) {
       .or('status.in.(NOVO,Novo,novo,CURIOSO,Curioso,curioso),status.is.null');
 
     if (contactsError) {
-      console.error('❌ Erro ao buscar contatos no banco:', contactsError.message);
+      console.error('❌ Erro ao buscar contatos:', contactsError.message);
       return NextResponse.json({ error: 'Erro ao buscar contatos' }, { status: 500 });
     }
 
     if (!contacts || contacts.length === 0) {
-      console.log('✅ Nenhum contato precisa de classificação no momento.');
+      console.log('✅ Nenhum contato precisa de classificação.');
       return NextResponse.json({ message: 'Nenhum contato para processar' }, { status: 200 });
     }
 
     console.log(`📊 Encontrados ${contacts.length} contatos para processamento.`);
 
     let processados = 0;
+    let conversoesMeta = 0;
 
-    // 2. Loop sobre os contatos para análise individual
     for (const contact of contacts) {
-      // 3. Busca as últimas 15 mensagens do contato
+      // Buscar últimas 15 mensagens
       const { data: messages, error: msgsError } = await supabaseAdmin
         .from('messages')
         .select('content, role, created_at')
@@ -45,90 +45,132 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: false })
         .limit(15);
 
-      if (msgsError) {
-        console.error(`❌ Erro ao buscar mensagens para o contato ${contact.id}:`, msgsError.message);
-        continue;
-      }
+      if (msgsError || !messages || messages.length === 0) continue;
 
-      if (!messages || messages.length === 0) {
-        console.log(`⚠️ Nenhuma mensagem encontrada para o contato ${contact.phone} (ID: ${contact.id}).`);
-        continue;
-      }
-
-      // Inverte para ordem cronológica
       messages.reverse();
 
-      // 4. Montar histórico
       const historico = messages.map(msg => {
         const remetente = msg.role === 'user' ? 'Cliente' : 'Agência';
         return `${remetente}: ${msg.content}`;
       }).join('\n');
 
-      console.log(`\n---------------------------------------------`);
-      console.log(`🔎 Analisando contato: ${contact.phone} (ID: ${contact.id})`);
-      console.log(`📌 Status Atual: ${contact.status}`);
-      console.log(`💬 Mensagens: ${messages.length}`);
-      console.log(`---------------------------------------------\n`);
+      console.log(`\n🔎 Analisando: ${contact.phone} | Status: ${contact.status}`);
 
-      // Delay entre chamadas para respeitar rate limit
+      // Rate limit
       if (contacts.indexOf(contact) > 0) {
-        console.log('⏳ Aguardando 5s para respeitar rate limit...');
         await new Promise(r => setTimeout(r, 5000));
       }
 
       try {
-        // 5. Análise completa com IA (estágio + valor + origem)
         const analysis = await analyzeLeadFull(historico);
 
-        console.log(`🤖 IA resultado para ${contact.phone}:`);
-        console.log(`   📊 Estágio: ${analysis.status}`);
-        console.log(`   💰 Valor: ${analysis.sale_value ? `R$${analysis.sale_value}` : 'não detectado'}`);
-        console.log(`   🔗 Origem: ${analysis.detected_source || 'não detectada'}`);
+        console.log(`🤖 Resultado: ${analysis.status} | Valor: ${analysis.sale_value ? `R$${analysis.sale_value}` : '-'} | Origem: ${analysis.detected_source || '-'}`);
 
-        // 6. Preparar dados para update
         const updateData: Record<string, any> = {};
+        const statusChanged = analysis.status !== contact.status;
         
-        if (analysis.status !== contact.status) {
-          updateData.status = analysis.status;
-        }
-        
-        if (analysis.sale_value) {
-          updateData.sale_value = analysis.sale_value;
-        }
-        
-        if (analysis.detected_source) {
-          updateData.detected_source = analysis.detected_source;
-        }
+        if (statusChanged) updateData.status = analysis.status;
+        if (analysis.sale_value) updateData.sale_value = analysis.sale_value;
+        if (analysis.detected_source) updateData.detected_source = analysis.detected_source;
 
-        // 7. Atualizar se houver mudanças
         if (Object.keys(updateData).length > 0) {
           const { error: updateError } = await supabaseAdmin
             .from('contacts')
             .update(updateData)
             .eq('id', contact.id);
 
-          if (updateError) {
-            console.error(`❌ Erro ao atualizar contato ${contact.id}:`, updateError.message);
-          } else {
-            console.log(`✅ Contato ${contact.phone} atualizado!`, updateData);
+          if (!updateError) {
+            console.log(`✅ Atualizado:`, updateData);
             processados++;
           }
-        } else {
-          console.log(`⏸️ Nenhuma alteração necessária para ${contact.phone}.`);
         }
+
+        // 🔥 KILLER FEATURE: Se mudou para COMPROU, enviar conversão pro Meta Ads
+        if (statusChanged && analysis.status === 'COMPROU') {
+          await sendConversionToMeta(contact.phone, analysis.sale_value);
+          conversoesMeta++;
+        }
+
       } catch (iaError) {
-        console.error(`⚠️ Erro na IA ao processar contato ${contact.id}:`, iaError);
+        console.error(`⚠️ Erro na IA para ${contact.id}:`, iaError);
       }
     }
 
     console.log(`\n=============================================`);
-    console.log(`✅ CRON Job finalizado! ${processados} contatos atualizados.`);
+    console.log(`✅ CRON finalizado! ${processados} atualizados, ${conversoesMeta} conversões Meta.`);
     console.log(`=============================================\n`);
     
-    return NextResponse.json({ success: true, processados, totalAnalisados: contacts.length }, { status: 200 });
+    return NextResponse.json({ success: true, processados, conversoesMeta, total: contacts.length });
 
   } catch (error) {
-    console.error('❌ Erro inesperado no CRON Job:', error);
-    return NextResponse.json({ error: 'Erro interno no servidor' }, { status: 500 });
+    console.error('❌ Erro no CRON:', error);
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+  }
+}
+
+/**
+ * Envia a conversão para todos os workspaces que tenham Meta CAPI configurado
+ * e possuam uma click_session com o mesmo telefone.
+ */
+async function sendConversionToMeta(phone: string, saleValue: number | null) {
+  try {
+    // Buscar leads com esse telefone que tenham click_session com fbclid
+    const { data: leads } = await supabaseAdmin
+      .from('leads')
+      .select(`
+        workspace_id,
+        phone_number,
+        click_sessions (
+          fbclid,
+          utm_source
+        )
+      `)
+      .eq('phone_number', phone);
+
+    if (!leads || leads.length === 0) return;
+
+    for (const lead of leads) {
+      // Buscar config Meta do workspace
+      const { data: workspace } = await supabaseAdmin
+        .from('workspaces')
+        .select('meta_pixel_id, meta_access_token')
+        .eq('id', lead.workspace_id)
+        .single();
+
+      if (!workspace?.meta_pixel_id || !workspace?.meta_access_token) {
+        console.log(`⏭️ Workspace ${lead.workspace_id} sem Meta CAPI configurado.`);
+        continue;
+      }
+
+      const clickSession = lead.click_sessions as any;
+      const fbclid = clickSession?.fbclid || undefined;
+
+      // Só enviar se a origem for Meta Ads (ou se tiver fbclid)
+      const isMetaOrigin = clickSession?.utm_source?.includes('meta') || 
+                           clickSession?.utm_source?.includes('facebook') ||
+                           clickSession?.utm_source?.includes('instagram') ||
+                           !!fbclid;
+
+      if (!isMetaOrigin) {
+        console.log(`⏭️ Lead ${phone} não veio do Meta Ads, pulando CAPI.`);
+        continue;
+      }
+
+      const result = await sendMetaPurchase({
+        pixelId: workspace.meta_pixel_id,
+        accessToken: workspace.meta_access_token,
+        phone,
+        value: saleValue || undefined,
+        fbclid,
+      });
+
+      if (result.success) {
+        console.log(`🎯 Conversão Purchase enviada ao Meta para ${phone}!`);
+      } else {
+        console.error(`❌ Falha CAPI para ${phone}: ${result.error}`);
+      }
+    }
+  } catch (error) {
+    console.error(`❌ Erro ao enviar conversão Meta:`, error);
   }
 }
