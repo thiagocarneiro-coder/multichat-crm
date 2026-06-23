@@ -48,7 +48,7 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else if (data.error === 'Não autenticado') {
-        window.location.href = '/login';
+        window.location.href = `/login?plan=${plan}`;
       } else {
         alert(data.error || 'Erro ao criar checkout');
       }
