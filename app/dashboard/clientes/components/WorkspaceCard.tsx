@@ -152,14 +152,23 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
       const res = await response.json();
 
       if (response.ok && res.success && res.instanceName) {
+        // Caso 1: Já estava conectado — mostrar badge direto
+        if (res.alreadyConnected) {
+          setConnectionState('open');
+          setActiveInstanceName(res.instanceName);
+          setIsConnecting(false);
+          return;
+        }
+
+        // Caso 2: QR não veio (erro real)
         if (!res.base64) {
           setConnectionState('close');
-          alert('A Evolution API retornou sucesso, mas não enviou o QR Code (base64 vazio). Verifique os logs do backend.');
+          alert('Não foi possível gerar o QR Code. Tente novamente em 1 minuto.');
           setIsConnecting(false);
           return;
         }
         
-        // Ajusta o prefixo base64 se já não vier em formato URI
+        // Caso 3: QR veio — mostrar na tela
         const qrData = res.base64.startsWith('data:image') ? res.base64 : `data:image/png;base64,${res.base64}`;
         setQrCodeData(qrData);
         setActiveInstanceName(res.instanceName);
