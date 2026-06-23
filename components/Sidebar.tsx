@@ -11,8 +11,17 @@ const navItems = [
   { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
 ];
 
-export default function Sidebar() {
+type SidebarProps = {
+  planName?: string;
+  workspaceCount?: number;
+  maxWorkspaces?: number;
+};
+
+export default function Sidebar({ planName, workspaceCount = 0, maxWorkspaces = 1 }: SidebarProps) {
   const pathname = usePathname();
+
+  const isUnlimited = maxWorkspaces === -1;
+  const usagePercent = isUnlimited ? 0 : Math.min((workspaceCount / maxWorkspaces) * 100, 100);
 
   return (
     <div className="w-64 bg-slate-900 h-screen flex flex-col text-slate-300">
@@ -50,11 +59,35 @@ export default function Sidebar() {
 
       <div className="p-4 border-t border-slate-800">
         <div className="bg-slate-800/50 rounded-xl p-4">
-          <p className="text-xs text-slate-400 font-medium mb-2">Plano Pro</p>
-          <div className="w-full bg-slate-700 rounded-full h-1.5 mb-2">
-            <div className="bg-blue-500 h-1.5 rounded-full w-1/3"></div>
-          </div>
-          <p className="text-[10px] text-slate-500">2,300 / 10,000 acessos</p>
+          <p className="text-xs text-slate-400 font-medium mb-2">
+            Plano {planName || 'Gratuito'}
+          </p>
+          {!isUnlimited && (
+            <>
+              <div className="w-full bg-slate-700 rounded-full h-1.5 mb-2">
+                <div 
+                  className={`h-1.5 rounded-full transition-all ${usagePercent > 80 ? 'bg-amber-500' : 'bg-blue-500'}`} 
+                  style={{ width: `${usagePercent}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-500">
+                {workspaceCount} / {maxWorkspaces} workspace{maxWorkspaces > 1 ? 's' : ''}
+              </p>
+            </>
+          )}
+          {isUnlimited && (
+            <p className="text-[10px] text-emerald-400">
+              ✨ {workspaceCount} workspace{workspaceCount !== 1 ? 's' : ''} · Ilimitado
+            </p>
+          )}
+          {!planName && (
+            <Link 
+              href="/pricing" 
+              className="block mt-2 text-[10px] text-blue-400 hover:text-blue-300 font-medium"
+            >
+              Fazer upgrade →
+            </Link>
+          )}
         </div>
       </div>
     </div>

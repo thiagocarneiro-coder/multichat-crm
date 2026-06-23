@@ -43,7 +43,7 @@ export default function WorkspaceSelector({ workspaces, initialWorkspaceId }: { 
       >
         <Building2 className="w-4 h-4 text-slate-500" />
         <span className="truncate max-w-[150px]">
-          {activeWorkspace ? activeWorkspace.name : 'Carregando...'}
+          {activeWorkspace ? activeWorkspace.name : (workspaces.length === 0 ? 'Nenhum cliente' : 'Selecionar...')}
         </span>
         <ChevronDown className="w-4 h-4 text-slate-500" />
       </button>
