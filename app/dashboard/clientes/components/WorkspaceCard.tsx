@@ -92,6 +92,7 @@ type Workspace = {
   created_at: string;
   meta_pixel_id?: string | null;
   meta_access_token?: string | null;
+  webhook_url?: string | null;
 };
 
 export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
@@ -111,6 +112,10 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [savingMeta, setSavingMeta] = useState(false);
   const [metaConnected, setMetaConnected] = useState(!!(workspace.meta_pixel_id && workspace.meta_access_token));
   const [editingMeta, setEditingMeta] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState(workspace.webhook_url || '');
+  const [savingWebhook, setSavingWebhook] = useState(false);
+  const [webhookConnected, setWebhookConnected] = useState(!!workspace.webhook_url);
+  const [editingWebhook, setEditingWebhook] = useState(false);
   const router = useRouter();
 
   // Usar a URL pública definida nas variáveis de ambiente, ou fallback para a origem local
@@ -361,6 +366,85 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                     {editingMeta && (
                       <button
                         onClick={() => setEditingMeta(false)}
+                        className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Webhook Config */}
+          <div className={`bg-white rounded-2xl p-5 mt-4 border shadow-sm ${webhookConnected ? 'border-amber-200' : 'border-slate-200'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                Webhook
+              </h3>
+              {webhookConnected && !editingWebhook && (
+                <span className="px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  Ativo
+                </span>
+              )}
+            </div>
+
+            {webhookConnected && !editingWebhook ? (
+              <div className="mt-3">
+                <p className="text-xs text-slate-500">URL: <span className="font-mono text-slate-700 truncate">{webhookUrl.slice(0, 40)}...</span></p>
+                <p className="text-[10px] text-slate-400 mt-1">Dispara em toda mudança de status do lead (NOVO → COMPROU etc.)</p>
+                <button
+                  onClick={() => setEditingWebhook(true)}
+                  className="mt-3 px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  Editar webhook
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500 mt-1 mb-3">
+                  Receba notificações automáticas quando o status de um lead mudar. Integre com Zapier, Make, n8n ou seu CRM.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">URL do Webhook</label>
+                    <input
+                      type="url"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      placeholder="https://hooks.zapier.com/... ou https://hook.us1.make.com/..."
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        setSavingWebhook(true);
+                        try {
+                          const res = await authenticatedFetch(`/api/workspaces/${workspace.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ webhook_url: webhookUrl }),
+                          });
+                          if (res.ok) {
+                            setWebhookConnected(!!webhookUrl);
+                            setEditingWebhook(false);
+                          }
+                        } catch {} finally {
+                          setSavingWebhook(false);
+                        }
+                      }}
+                      disabled={savingWebhook || !webhookUrl}
+                      className="px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-500 transition-colors disabled:opacity-50"
+                    >
+                      {savingWebhook ? 'Salvando...' : 'Salvar e ativar'}
+                    </button>
+                    {editingWebhook && (
+                      <button
+                        onClick={() => setEditingWebhook(false)}
                         className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
                       >
                         Cancelar

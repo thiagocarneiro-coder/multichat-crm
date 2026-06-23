@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { validateCronRequest } from '@/lib/auth';
 import { analyzeLeadFull } from '@/lib/ai';
 import { sendMetaPurchase } from '@/lib/meta-capi';
+import { fireWebhooks } from '@/lib/webhooks';
 
 export const maxDuration = 60;
 
@@ -89,6 +90,30 @@ export async function GET(request: Request) {
         if (statusChanged && analysis.status === 'COMPROU') {
           await sendConversionToMeta(contact.phone, analysis.sale_value);
           conversoesMeta++;
+        }
+
+        // 🔔 WEBHOOK: Disparar quando status mudar
+        if (statusChanged) {
+          // Buscar workspace_id via leads que tem esse phone
+          const { data: leadData } = await supabaseAdmin
+            .from('leads')
+            .select('workspace_id')
+            .eq('phone_number', contact.phone)
+            .limit(1)
+            .single();
+
+          if (leadData?.workspace_id) {
+            await fireWebhooks(leadData.workspace_id, {
+              event: 'lead.status_changed',
+              phone: contact.phone,
+              old_status: contact.status,
+              new_status: analysis.status,
+              sale_value: analysis.sale_value,
+              detected_source: analysis.detected_source,
+              workspace_id: leadData.workspace_id,
+              timestamp: new Date().toISOString(),
+            });
+          }
         }
 
       } catch (iaError) {
