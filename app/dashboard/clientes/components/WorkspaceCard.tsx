@@ -100,8 +100,6 @@ type Workspace = {
 
 export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [copiedScript, setCopiedScript] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBridge, setCopiedBridge] = useState(false);
 
   // Estados de Conexão WhatsApp
@@ -134,18 +132,10 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
 
   const bridgeUrl = `${appDomain}/go/${workspace.slug}`;
 
-  const copyToClipboard = (text: string, type: 'script' | 'link' | 'bridge') => {
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    if (type === 'script') {
-      setCopiedScript(true);
-      setTimeout(() => setCopiedScript(false), 2000);
-    } else if (type === 'link') {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    } else if (type === 'bridge') {
-      setCopiedBridge(true);
-      setTimeout(() => setCopiedBridge(false), 2000);
-    }
+    setCopiedBridge(true);
+    setTimeout(() => setCopiedBridge(false), 2000);
   };
 
   const handleConnectWhatsApp = async () => {
@@ -304,7 +294,7 @@ export default function WorkspaceCard({ workspace }: { workspace: Workspace }) {
                 className="flex-1 px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg text-slate-700"
               />
               <button
-                onClick={() => copyToClipboard(bridgeUrl, 'bridge')}
+                onClick={() => copyToClipboard(bridgeUrl)}
                 className={`px-3 py-2 text-xs font-bold rounded-lg transition-all ${
                   copiedBridge
                     ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
