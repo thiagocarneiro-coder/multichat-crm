@@ -13,7 +13,6 @@ import { createServerClient } from '@supabase/ssr';
 // Rotas que requerem Bearer token interno (chamadas do frontend)
 const BEARER_PROTECTED_ROUTES = [
   '/api/whatsapp/create',
-  '/api/whatsapp/status',
   '/api/whatsapp/send',
   '/api/contacts',
 ];
@@ -22,6 +21,7 @@ const BEARER_PROTECTED_ROUTES = [
 const PUBLIC_ROUTES = [
   '/api/webhook',
   '/api/auth',
+  '/api/whatsapp/status',
   '/login',
   '/signup',
 ];
