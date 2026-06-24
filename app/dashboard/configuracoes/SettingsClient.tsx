@@ -50,7 +50,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
         }
 
         console.log('[WA Status] Checking slug:', workspace.slug);
-        const res = await authenticatedFetch(`/api/whatsapp/status?slug=${workspace.slug}`);
+        const res = await fetch(`/api/whatsapp/status?slug=${workspace.slug}`, { cache: 'no-store' });
         const data = await res.json();
         console.log('[WA Status] Response:', res.status, JSON.stringify(data));
         
@@ -173,7 +173,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
 
         if (!workspace) return;
 
-        const res = await authenticatedFetch(`/api/whatsapp/status?slug=${workspace.slug}`);
+        const res = await fetch(`/api/whatsapp/status?slug=${workspace.slug}`, { cache: 'no-store' });
         const data = await res.json();
 
         if (res.ok && data.success && data.state === 'open') {
