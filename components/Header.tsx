@@ -1,31 +1,14 @@
-import WorkspaceSelector from './WorkspaceSelector';
+'use client';
+
 import LogoutButton from './LogoutButton';
-import { cookies } from 'next/headers';
 
-type Workspace = {
-  id: string;
-  name: string;
-  slug: string;
-};
-
-export default async function Header({ workspaces }: { workspaces: Workspace[] }) {
-  const cookieStore = await cookies();
-  const activeWorkspaceId = cookieStore.get('activeWorkspaceId')?.value;
-
+export default function Header() {
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-10">
-      <div className="flex items-center">
-        {/* Breadcrumb futuro */}
+    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-700">MultiChat CRM</h2>
       </div>
-
       <div className="flex items-center gap-4">
-        <WorkspaceSelector 
-          workspaces={workspaces} 
-          initialWorkspaceId={activeWorkspaceId} 
-        />
-        
-        <div className="h-6 w-px bg-slate-200 mx-1"></div>
-        
         <LogoutButton />
       </div>
     </header>

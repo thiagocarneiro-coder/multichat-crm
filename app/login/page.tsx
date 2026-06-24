@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { Mail, Lock, Loader2, ArrowRight, BarChart3 } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
 function LoginForm() {
@@ -14,7 +14,6 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/dashboard';
-  const planFromUrl = searchParams.get('plan');
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,23 +35,6 @@ function LoginForm() {
       return;
     }
 
-    // Se veio do pricing com um plano, redirecionar para checkout
-    if (planFromUrl) {
-      try {
-        const res = await fetch('/api/stripe/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: planFromUrl }),
-        });
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
-      } catch (e) {
-        // fallback para redirect normal
-      }
-    }
     router.push(redirectTo);
     router.refresh();
   };
@@ -61,18 +43,18 @@ function LoginForm() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md relative">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
-            <BarChart3 className="w-7 h-7 text-white" />
+          <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/25">
+            <MessageCircle className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Riguetto Tracker</h1>
-          <p className="text-slate-400 text-sm mt-1">Acesse sua conta para gerenciar seus leads</p>
+          <h1 className="text-2xl font-bold text-white">MultiChat CRM</h1>
+          <p className="text-slate-400 text-sm mt-1">Acesse sua conta para gerenciar seus atendimentos</p>
         </div>
 
         {/* Card */}
@@ -93,7 +75,7 @@ function LoginForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all text-sm"
                   placeholder="seu@email.com"
                 />
               </div>
@@ -108,7 +90,7 @@ function LoginForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all text-sm"
                   placeholder="••••••••"
                   minLength={6}
                 />
@@ -118,7 +100,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold rounded-xl hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-500 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -133,15 +115,15 @@ function LoginForm() {
           <div className="mt-6 text-center">
             <p className="text-slate-500 text-sm">
               Não tem conta?{' '}
-              <Link href={planFromUrl ? `/signup?plan=${planFromUrl}` : '/signup'} className="text-blue-400 font-medium hover:text-blue-300 transition-colors">
-                Criar conta grátis
+              <Link href="/signup" className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors">
+                Criar conta
               </Link>
             </p>
           </div>
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          © {new Date().getFullYear()} Riguetto Tracker. Todos os direitos reservados.
+          © {new Date().getFullYear()} MultiChat CRM. Todos os direitos reservados.
         </p>
       </div>
     </div>

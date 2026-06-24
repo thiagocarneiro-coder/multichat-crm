@@ -3,18 +3,17 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { UserPlus, Mail, Lock, User, Loader2, ArrowRight, BarChart3 } from 'lucide-react';
+import { Mail, Lock, User, Loader2, ArrowRight, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
 function SignupForm() {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const planFromUrl = searchParams.get('plan');
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,56 +29,64 @@ function SignupForm() {
       email,
       password,
       options: {
-        data: { full_name: name },
+        data: { full_name: fullName },
       },
     });
 
     if (error) {
-      setError(error.message === 'User already registered'
-        ? 'Este email já está cadastrado. Tente fazer login.'
-        : error.message);
+      setError(error.message);
       setLoading(false);
       return;
     }
 
-    // Se veio do pricing com um plano, redirecionar para checkout
-    if (planFromUrl) {
-      try {
-        const res = await fetch('/api/stripe/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: planFromUrl }),
-        });
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
-      } catch (e) {
-        // fallback
-      }
-    }
-
-    router.push('/dashboard');
-    router.refresh();
+    setSuccess(true);
+    setLoading(false);
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
+        </div>
+        <div className="w-full max-w-md relative">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Verifique seu email</h2>
+            <p className="text-slate-400 text-sm">
+              Enviamos um link de confirmação para <strong className="text-white">{email}</strong>. 
+              Clique no link para ativar sua conta.
+            </p>
+            <Link 
+              href="/login" 
+              className="inline-block mt-6 text-emerald-400 font-medium text-sm hover:text-emerald-300 transition-colors"
+            >
+              ← Voltar para o login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/3 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md relative">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
-            <BarChart3 className="w-7 h-7 text-white" />
+          <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/25">
+            <MessageCircle className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Criar sua conta</h1>
-          <p className="text-slate-400 text-sm mt-1">Comece a rastrear seus leads em minutos</p>
+          <h1 className="text-2xl font-bold text-white">Criar Conta</h1>
+          <p className="text-slate-400 text-sm mt-1">Comece a usar o MultiChat CRM gratuitamente</p>
         </div>
 
         {/* Card */}
@@ -92,16 +99,16 @@ function SignupForm() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Nome completo</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Nome</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="text"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
-                  placeholder="Seu nome"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all text-sm"
+                  placeholder="Seu nome completo"
                 />
               </div>
             </div>
@@ -115,7 +122,7 @@ function SignupForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all text-sm"
                   placeholder="seu@email.com"
                 />
               </div>
@@ -130,7 +137,7 @@ function SignupForm() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all text-sm"
                   placeholder="Mínimo 6 caracteres"
                   minLength={6}
                 />
@@ -140,13 +147,13 @@ function SignupForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold rounded-xl hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-500 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  Criar conta <UserPlus className="w-4 h-4" />
+                  Criar conta <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
@@ -155,12 +162,16 @@ function SignupForm() {
           <div className="mt-6 text-center">
             <p className="text-slate-500 text-sm">
               Já tem conta?{' '}
-              <Link href="/login" className="text-blue-400 font-medium hover:text-blue-300 transition-colors">
+              <Link href="/login" className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors">
                 Fazer login
               </Link>
             </p>
           </div>
         </div>
+
+        <p className="text-center text-slate-600 text-xs mt-6">
+          © {new Date().getFullYear()} MultiChat CRM. Todos os direitos reservados.
+        </p>
       </div>
     </div>
   );

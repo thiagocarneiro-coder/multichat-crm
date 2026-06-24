@@ -3,31 +3,25 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 /**
- * Next.js Middleware — Riguetto Tracker Security Layer
+ * Next.js Middleware — MultiChat CRM Security Layer
  * 
  * 1. Protege rotas /dashboard/* → redireciona para /login se não autenticado
- * 2. Protege APIs internas (whatsapp/create, whatsapp/status) com Bearer token
- * 3. Rotas públicas (webhooks, bridge page, auth, landing) passam sem autenticação
+ * 2. Protege APIs internas com Bearer token
+ * 3. Rotas públicas (webhooks, auth) passam sem autenticação
  */
 
 // Rotas que requerem Bearer token interno (chamadas do frontend)
 const BEARER_PROTECTED_ROUTES = [
   '/api/whatsapp/create',
   '/api/whatsapp/status',
+  '/api/whatsapp/send',
+  '/api/contacts',
 ];
 
 // Rotas sempre públicas (sem auth nenhuma)
 const PUBLIC_ROUTES = [
   '/api/webhook',
   '/api/auth',
-  '/api/track',
-  '/api/tracking',
-  '/api/get-instance-phone',
-  '/api/redirect',
-  '/api/cron',
-  '/api/stripe',
-  '/api/share',
-  '/go/',
   '/login',
   '/signup',
 ];

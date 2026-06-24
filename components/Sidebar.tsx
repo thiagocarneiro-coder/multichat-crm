@@ -2,35 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageCircle, Building2, Settings, Target } from 'lucide-react';
+import { LayoutDashboard, MessageCircle, Columns3, Settings } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Conversas', href: '/dashboard/conversas', icon: MessageCircle },
-  { name: 'Clientes', href: '/dashboard/clientes', icon: Building2 },
+  { name: 'CRM', href: '/dashboard/crm', icon: Columns3 },
   { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
 ];
 
-type SidebarProps = {
-  planName?: string;
-  workspaceCount?: number;
-  maxWorkspaces?: number;
-};
-
-export default function Sidebar({ planName, workspaceCount = 0, maxWorkspaces = 1 }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
-
-  const isUnlimited = maxWorkspaces === -1;
-  const usagePercent = isUnlimited ? 0 : Math.min((workspaceCount / maxWorkspaces) * 100, 100);
 
   return (
     <div className="w-64 bg-slate-900 h-screen flex flex-col text-slate-300">
       <div className="h-16 flex items-center px-6 border-b border-slate-800">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg text-white">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Target className="w-5 h-5 text-white" />
+        <Link href="/dashboard" className="flex items-center gap-2.5 font-bold text-lg text-white">
+          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <MessageCircle className="w-4.5 h-4.5 text-white" />
           </div>
-          Riguetto <span className="text-blue-400">Tracker</span>
+          Multi<span className="text-emerald-400">Chat</span>
         </Link>
       </div>
 
@@ -44,13 +35,13 @@ export default function Sidebar({ planName, workspaceCount = 0, maxWorkspaces = 
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-600/10 text-blue-400'
+                  ? 'bg-emerald-500/10 text-emerald-400 shadow-sm'
                   : 'hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+              <item.icon className={`w-5 h-5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
               {item.name}
             </Link>
           );
@@ -59,35 +50,13 @@ export default function Sidebar({ planName, workspaceCount = 0, maxWorkspaces = 
 
       <div className="p-4 border-t border-slate-800">
         <div className="bg-slate-800/50 rounded-xl p-4">
-          <p className="text-xs text-slate-400 font-medium mb-2">
-            Plano {planName || 'Gratuito'}
+          <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            MultiChat CRM
           </p>
-          {!isUnlimited && (
-            <>
-              <div className="w-full bg-slate-700 rounded-full h-1.5 mb-2">
-                <div 
-                  className={`h-1.5 rounded-full transition-all ${usagePercent > 80 ? 'bg-amber-500' : 'bg-blue-500'}`} 
-                  style={{ width: `${usagePercent}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-500">
-                {workspaceCount} / {maxWorkspaces} workspace{maxWorkspaces > 1 ? 's' : ''}
-              </p>
-            </>
-          )}
-          {isUnlimited && (
-            <p className="text-[10px] text-emerald-400">
-              ✨ {workspaceCount} workspace{workspaceCount !== 1 ? 's' : ''} · Ilimitado
-            </p>
-          )}
-          {!planName && (
-            <Link 
-              href="/pricing" 
-              className="block mt-2 text-[10px] text-blue-400 hover:text-blue-300 font-medium"
-            >
-              Fazer upgrade →
-            </Link>
-          )}
+          <p className="text-[10px] text-slate-500 mt-1">
+            Atendimento WhatsApp + CRM
+          </p>
         </div>
       </div>
     </div>

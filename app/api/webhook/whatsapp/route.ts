@@ -3,18 +3,15 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { validateWebhookSecret } from '@/lib/auth';
 
 /**
- * Webhook Unificado — Riguetto Tracker
+ * Webhook WhatsApp — MultiChat CRM
  * 
- * Recebe mensagens do WhatsApp via Evolution API ou Meta Oficial.
+ * Recebe mensagens do WhatsApp via Evolution API.
  * 
  * Fluxo:
  * 1. Valida webhook secret
- * 2. Extrai telefone + texto do payload (Evolution ou Meta format)
- * 3. Intercepta UTMs injetadas pela Bridge Page
- * 4. Upsert em `contacts` + insert em `messages` (para o Inbox)
- * 5. Se encontrar session_code [XXX-0000], faz matching com click_sessions
- *    e upsert em `leads` (para o Dashboard)
- * 6. Incrementa contador de unread
+ * 2. Extrai telefone + texto do payload
+ * 3. Upsert em `contacts` + insert em `messages`
+ * 4. Incrementa contador de unread (para mensagens de clientes)
  * 
  * REGRA DE OURO: Sempre retorna 200 OK para evitar retries.
  */
@@ -26,23 +23,22 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     debugStep = 'validate_secret';
-    // Security: validate webhook secret from Evolution API
     const auth = validateWebhookSecret(request);
     if (!auth.valid) return auth.response!;
 
     console.log('\n=============================================');
-    console.log("WEBHOOK UNIFICADO — PAYLOAD RECEBIDO:", JSON.stringify(body, null, 2));
+    console.log("MULTICHAT CRM — WEBHOOK RECEBIDO:", JSON.stringify(body, null, 2).slice(0, 500));
     console.log('=============================================\n');
 
-    // ─── 1. Extrair dados do payload (suporta Evolution API e Meta) ───
+    // ─── 1. Extrair dados do payload (Evolution API) ───
 
     let phone_number = '';
     let message_text = '';
     let pushName = 'Desconhecido';
     let fromMe = false;
+    const instanceName = body?.instance || '';
 
     if (body?.data?.key?.remoteJid) {
-      // Formato Evolution API (messages.upsert com data.key)
       const messageData = body.data;
       const remoteJid = messageData.key.remoteJid || '';
       fromMe = messageData.key.fromMe || false;
@@ -52,7 +48,6 @@ export async function POST(request: Request) {
         || messageData.message?.extendedTextMessage?.text 
         || '';
     } else if (body?.event === 'messages.upsert' && body?.data?.message) {
-      // Formato Evolution API alternativo (event wrapper)
       const msgData = body.data.message;
       fromMe = msgData?.key?.fromMe || false;
       pushName = body.data?.pushName || 'Desconhecido';
@@ -60,19 +55,11 @@ export async function POST(request: Request) {
       phone_number = remoteJid.split('@')[0];
       const content = msgData?.message;
       message_text = content?.conversation || content?.extendedTextMessage?.text || '';
-    } else if (body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
-      // Formato Meta Oficial (Cloud API)
-      const messageObj = body.entry[0].changes[0].value.messages[0];
-      phone_number = messageObj.from || '';
-      message_text = messageObj.text?.body || '';
-      pushName = body.entry[0].changes[0].value?.contacts?.[0]?.profile?.name || 'Desconhecido';
     }
 
     // ─── Evento de conexão: salvar phone no workspace automaticamente ───
     if (body?.event === 'connection.update' && body?.data?.state === 'open' && body?.sender) {
       const ownerPhone = body.sender.split('@')[0];
-      const instanceName = body?.instance || '';
-      // Extrai o slug do nome da instância (ex: agencia-demo-1234567 → agencia-demo)
       const slugMatch = instanceName.match(/^(.+)-\d+$/);
       if (slugMatch && ownerPhone) {
         const slug = slugMatch[1];
@@ -81,7 +68,7 @@ export async function POST(request: Request) {
           .update({ phone: ownerPhone })
           .eq('slug', slug);
         if (!error) {
-          console.log(`📱 Phone ${ownerPhone} salvo automaticamente no workspace '${slug}'`);
+          console.log(`📱 Phone ${ownerPhone} salvo no workspace '${slug}'`);
         }
       }
       return new Response('Connection update processed', { status: 200 });
@@ -95,39 +82,51 @@ export async function POST(request: Request) {
     if (!message_text) {
       return new Response('Ignorando mensagem sem texto', { status: 200 });
     }
-    if (fromMe) {
-      // Mensagens do próprio bot: registrar mas não processar como lead
-    }
 
     const messageRole = fromMe ? 'assistant' : 'user';
 
-    // ─── 3. Interceptar e limpar UTMs injetadas pela Bridge Page ───
+    // ─── 3. Identificar workspace a partir da instância ───
 
-    let finalMessage = message_text;
-    let utmSource: string | null = null;
-    let utmCampaign: string | null = null;
-
-    const utmMatch = message_text.match(/\[utm_source:\s*(.*?),.*utm_campaign:\s*(.*?)\]/);
-    if (utmMatch) {
-      utmSource = utmMatch[1] !== 'não informado' ? utmMatch[1].trim() : null;
-      utmCampaign = utmMatch[2] !== 'não informado' ? utmMatch[2].trim() : null;
-      finalMessage = message_text.replace(/\[utm_source:.*\]/, '').trim();
+    let workspaceId: string | null = null;
+    const slugMatch = instanceName.match(/^(.+)-\d+$/);
+    if (slugMatch) {
+      const slug = slugMatch[1];
+      const { data: ws } = await supabaseAdmin
+        .from('workspaces')
+        .select('id')
+        .eq('slug', slug)
+        .single();
+      workspaceId = ws?.id || null;
     }
 
-    // ─── 4. Upsert em contacts + insert em messages (Inbox) ───
+    // Fallback: pegar o primeiro workspace (para dev)
+    if (!workspaceId) {
+      const { data: firstWs } = await supabaseAdmin
+        .from('workspaces')
+        .select('id')
+        .limit(1)
+        .single();
+      workspaceId = firstWs?.id || null;
+    }
+
+    if (!workspaceId) {
+      console.error('❌ Nenhum workspace encontrado');
+      return new Response('Nenhum workspace configurado', { status: 200 });
+    }
+
+    // ─── 4. Upsert em contacts + insert em messages ───
 
     console.log('📝 Gravando contato e mensagem para:', phone_number);
 
     let { data: contactData, error: upsertError } = await supabaseAdmin
       .from('contacts')
       .upsert({ 
+        workspace_id: workspaceId,
         phone: phone_number, 
         name: pushName, 
-        last_message: finalMessage,
-        utm_source: utmSource || undefined,
-        utm_campaign: utmCampaign || undefined,
+        last_message: message_text,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'phone' })
+      }, { onConflict: 'workspace_id,phone' })
       .select('id')
       .single();
 
@@ -137,11 +136,12 @@ export async function POST(request: Request) {
 
     let contactId = contactData?.id;
 
-    // Fallback: buscar pelo telefone se o upsert não retornou ID
+    // Fallback: buscar pelo telefone
     if (!contactId) {
       const { data: fallbackData } = await supabaseAdmin
         .from('contacts')
         .select('id')
+        .eq('workspace_id', workspaceId)
         .eq('phone', phone_number)
         .single();
       contactId = fallbackData?.id;
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       .from('messages')
       .insert({
         contact_id: contactId,
-        content: finalMessage,
+        content: message_text,
         role: messageRole,
         direction: fromMe ? 'outbound' : 'inbound'
       });
@@ -177,44 +177,6 @@ export async function POST(request: Request) {
       console.log('✅ Mensagem gravada com sucesso!');
     }
 
-    // ─── 5. Matching com session_code → leads (Dashboard) ───
-
-    const codeRegex = /\[([a-zA-Z0-9-]+)\]/;
-    const codeMatch = message_text.match(codeRegex);
-
-    if (codeMatch && codeMatch[1] && !fromMe) {
-      const session_code = codeMatch[1];
-      console.log(`🔗 Código de sessão detectado: ${session_code}`);
-
-      const { data: sessionData, error: sessionError } = await supabaseAdmin
-        .from('click_sessions')
-        .select('id, workspace_id, curso')
-        .eq('session_code', session_code)
-        .single();
-
-      if (!sessionError && sessionData) {
-        const { data: leadData, error: leadError } = await supabaseAdmin
-          .from('leads')
-          .upsert([{
-            workspace_id: sessionData.workspace_id,
-            phone_number: phone_number,
-            click_session_id: sessionData.id,
-            curso: sessionData.curso
-          }], { onConflict: 'workspace_id,phone_number' })
-          .select()
-          .single();
-
-        if (leadError) {
-          console.error('❌ Erro ao vincular lead à sessão:', leadError.message);
-        } else if (leadData) {
-          console.log(`✅ Lead ${phone_number} vinculado à sessão ${session_code}`);
-        }
-      } else {
-        console.log(`⚠️ Código ${session_code} recebido, mas sessão não encontrada no banco.`);
-      }
-    }
-
-    // Retorno obrigatório de 200 OK
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error: any) {
@@ -225,20 +187,4 @@ export async function POST(request: Request) {
       error: error?.message || String(error) || 'Unknown error'
     }, { status: 200 });
   }
-}
-
-/**
- * GET handler para verificação do webhook da Meta (Cloud API).
- * A Meta envia um GET com hub.mode, hub.verify_token e hub.challenge.
- */
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const mode = searchParams.get('hub.mode');
-  const token = searchParams.get('hub.verify_token');
-  const challenge = searchParams.get('hub.challenge');
-
-  if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-    return new Response(challenge, { status: 200 });
-  }
-  return new Response('Forbidden', { status: 403 });
 }
