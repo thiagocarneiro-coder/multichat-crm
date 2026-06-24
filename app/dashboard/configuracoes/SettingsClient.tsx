@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { User, Mail, Lock, Loader2, CheckCircle, AlertCircle, Smartphone, QrCode, Check, Wifi, WifiOff } from 'lucide-react';
+import { User, Mail, Lock, Loader2, CheckCircle, AlertCircle, Smartphone, QrCode, Wifi, WifiOff } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api';
 
 type Props = {
@@ -136,9 +136,9 @@ export default function SettingsClient({ userEmail, userName }: Props) {
         setWhatsappState('close');
         setMessage({ type: 'error', text: data.error || 'Erro ao conectar WhatsApp.' });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setWhatsappState('close');
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erro desconhecido' });
     }
 
     setIsConnecting(false);

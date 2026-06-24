@@ -167,8 +167,8 @@ export default function ConversasPage() {
         // Remover mensagem otimista em caso de erro
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       }
-    } catch (err: any) {
-      alert('Erro ao enviar: ' + err.message);
+    } catch (err: unknown) {
+      alert('Erro ao enviar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
     }
 

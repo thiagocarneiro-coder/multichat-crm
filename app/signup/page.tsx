@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { Mail, Lock, User, Loader2, ArrowRight, MessageCircle } from 'lucide-react';
 import Link from 'next/link';

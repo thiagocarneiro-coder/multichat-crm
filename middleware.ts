@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
 
   // ─── Dashboard: verificar sessão Supabase Auth ───
   if (pathname.startsWith('/dashboard')) {
-    let response = NextResponse.next({
+    const response = NextResponse.next({
       request: { headers: request.headers },
     });
 

@@ -68,7 +68,7 @@ export default async function DashboardPage() {
   }
 
   // Aguardando resposta (updated_at > 24h e no pipeline ativo)
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dayAgo = new Date(today.getTime() - 24 * 60 * 60 * 1000);
   const waitingResponse = contacts?.filter(c => 
     new Date(c.updated_at) < dayAgo && 
     !['fechado', 'perdido'].includes(c.pipeline_stage)
