@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
 /**
- * WhatsApp Instance Create/Reconnect — Riguetto Tracker
+ * WhatsApp Instance Create/Reconnect — MultiChat CRM
+ * 
+ * Compatível com Evolution API v1.8.x e v2.x
  * 
  * Fluxo seguro para evitar banimento:
  * 1. Primeiro verifica se já existe uma instância para o workspace (slug)
@@ -11,6 +13,16 @@ import { NextResponse } from 'next/server';
  * 
  * Nunca cria instâncias duplicadas para o mesmo workspace.
  */
+
+// Helper para extrair dados da instância (compatível v1.8.x e v2.x)
+function extractInstanceData(inst: any) {
+  // v1.8.x: { instance: { instanceName, status, ... } }
+  // v2.x: { name, connectionStatus, ... }
+  const name = inst.instance?.instanceName || inst.name || '';
+  const status = inst.instance?.status || inst.connectionStatus || 'close';
+  const createdAt = inst.instance?.createdAt || inst.createdAt || '';
+  return { name, status, createdAt };
+}
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +42,9 @@ export async function POST(request: Request) {
     console.log(`[WhatsApp] Verificando instâncias existentes para slug: ${slug}`);
 
     let existingInstance: any = null;
+    let existingInstanceName: string | null = null;
+    let existingInstanceStatus: string | null = null;
+    
     try {
       const listRes = await fetch(`${API_URL}/instance/fetchInstances`, {
         headers: { 'apikey': API_KEY },
@@ -40,20 +55,26 @@ export async function POST(request: Request) {
         const instances = await listRes.json();
         // Encontrar instâncias deste workspace (slug-*)
         const workspaceInstances = instances
-          .filter((inst: any) => inst.name.startsWith(`${slug}-`))
+          .filter((inst: any) => {
+            const { name } = extractInstanceData(inst);
+            return name.startsWith(`${slug}-`);
+          })
+          .map((inst: any) => ({ raw: inst, ...extractInstanceData(inst) }))
           .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         if (workspaceInstances.length > 0) {
-          existingInstance = workspaceInstances[0]; // Mais recente
-          console.log(`[WhatsApp] Instância existente encontrada: ${existingInstance.name} (Status: ${existingInstance.connectionStatus})`);
+          existingInstance = workspaceInstances[0];
+          existingInstanceName = existingInstance.name;
+          existingInstanceStatus = existingInstance.status;
+          console.log(`[WhatsApp] Instância existente encontrada: ${existingInstanceName} (Status: ${existingInstanceStatus})`);
 
           // Se já está conectada, retorna sucesso direto
-          if (existingInstance.connectionStatus === 'open') {
+          if (existingInstanceStatus === 'open') {
             console.log(`[WhatsApp] ✅ Já conectada! Retornando sucesso.`);
             return NextResponse.json({ 
               success: true, 
               alreadyConnected: true,
-              instanceName: existingInstance.name 
+              instanceName: existingInstanceName 
             }, { status: 200 });
           }
 
@@ -79,9 +100,9 @@ export async function POST(request: Request) {
     let instanceName: string;
     let base64: string | null = null;
 
-    if (existingInstance && existingInstance.connectionStatus !== 'open') {
+    if (existingInstanceName && existingInstanceStatus !== 'open') {
       // Reconectar a instância existente
-      instanceName = existingInstance.name;
+      instanceName = existingInstanceName;
       console.log(`[WhatsApp] 🔄 Reconectando instância existente: ${instanceName}`);
 
       // Tentar connect para gerar novo QR
@@ -92,10 +113,11 @@ export async function POST(request: Request) {
 
       if (connectRes.ok) {
         const connectData = await connectRes.json();
-        base64 = connectData?.qrcode?.base64 || connectData?.base64 || connectData?.base64qr || connectData?.qrcode?.code;
+        // v1.8.x: base64 direto | v2.x: qrcode.base64
+        base64 = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.base64qr || connectData?.qrcode?.code || null;
       }
 
-    } else if (!existingInstance) {
+    } else if (!existingInstanceName) {
       // Criar nova instância
       instanceName = `${slug}-${Date.now()}`;
       console.log(`[WhatsApp] ➕ Criando nova instância: ${instanceName}`);
@@ -121,9 +143,10 @@ export async function POST(request: Request) {
       }
 
       const createData = await createResponse.json().catch(() => ({}));
-      base64 = createData?.qrcode?.base64 || createData?.base64 || createData?.hash?.qrcode;
+      // v1.8.x: qrcode.base64 | v2.x: qrcode.base64 ou hash.qrcode
+      base64 = createData?.qrcode?.base64 || createData?.base64 || createData?.hash?.qrcode || null;
     } else {
-      instanceName = existingInstance.name;
+      instanceName = existingInstanceName;
     }
 
     // ─── Etapa 3: Polling para QR Code (se ainda não obteve) ───
@@ -146,7 +169,7 @@ export async function POST(request: Request) {
 
           if (qrResponse.ok) {
             const qrData = await qrResponse.json();
-            base64 = qrData?.qrcode?.base64 || qrData?.base64 || qrData?.base64qr || qrData?.qrcode?.code;
+            base64 = qrData?.base64 || qrData?.qrcode?.base64 || qrData?.base64qr || qrData?.qrcode?.code || null;
             if (base64) {
               console.log(`[WhatsApp] ✅ QR Code obtido na tentativa ${attempts}`);
               break;
@@ -167,26 +190,28 @@ export async function POST(request: Request) {
     // ─── Etapa 4: Configurar webhook automaticamente ───
     const WEBHOOK_URL = process.env.NEXT_PUBLIC_APP_URL 
       ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/whatsapp`
-      : 'https://tracker-saas-ten.vercel.app/api/webhook/whatsapp';
+      : null;
     const WEBHOOK_SECRET = process.env.WEBHOOK_GLOBAL_SECRET;
 
-    try {
-      await fetch(`${API_URL}/webhook/set/${instanceName}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
-        body: JSON.stringify({
-          webhook: {
-            enabled: true,
-            url: WEBHOOK_URL,
-            webhookByEvents: false,
-            events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
-            headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
-          }
-        })
-      });
-      console.log(`[WhatsApp] 🔗 Webhook configurado: ${WEBHOOK_URL}`);
-    } catch (e) {
-      console.log('[WhatsApp] ⚠️ Erro ao configurar webhook (não bloqueante):', e);
+    if (WEBHOOK_URL) {
+      try {
+        await fetch(`${API_URL}/webhook/set/${instanceName}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
+          body: JSON.stringify({
+            webhook: {
+              enabled: true,
+              url: WEBHOOK_URL,
+              webhookByEvents: false,
+              events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
+              headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
+            }
+          })
+        });
+        console.log(`[WhatsApp] 🔗 Webhook configurado: ${WEBHOOK_URL}`);
+      } catch (e) {
+        console.log('[WhatsApp] ⚠️ Erro ao configurar webhook (não bloqueante):', e);
+      }
     }
 
     return NextResponse.json({ 
@@ -195,8 +220,8 @@ export async function POST(request: Request) {
       instanceName 
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[WhatsApp] Erro ao conectar:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro desconhecido' }, { status: 500 });
   }
 }

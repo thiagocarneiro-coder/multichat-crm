@@ -30,26 +30,32 @@ export async function GET(request: Request) {
 
     const instances = await response.json();
     
-    // Filtra as instâncias cujo nome começam com o slug
-    const workspaceInstances = instances.filter((inst: any) => inst.name.startsWith(`${slug}-`));
+    // Compatível com v1.8.x (inst.instance.instanceName) e v2.x (inst.name)
+    const workspaceInstances = instances.filter((inst: any) => {
+      const name = inst.instance?.instanceName || inst.name || '';
+      return name.startsWith(`${slug}-`);
+    });
 
     if (workspaceInstances.length === 0) {
       return NextResponse.json({ success: true, state: 'close' }, { status: 200 });
     }
 
-    // Ordena da mais recente para a mais antiga baseado na data de criação
-    workspaceInstances.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Pegar a mais recente
+    const latest = workspaceInstances[0];
     
-    const latestInstance = workspaceInstances[0];
+    // v1.8.x: status em inst.instance.status ('open'/'close'/'connecting')
+    // v2.x: status em inst.connectionStatus
+    const instanceName = latest.instance?.instanceName || latest.name;
+    const state = latest.instance?.status || latest.connectionStatus || 'close';
 
     return NextResponse.json({ 
       success: true, 
-      state: latestInstance.connectionStatus || 'close',
-      instanceName: latestInstance.name
+      state: state === 'open' ? 'open' : 'close',
+      instanceName
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao checar status global:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Erro desconhecido' }, { status: 500 });
   }
 }
