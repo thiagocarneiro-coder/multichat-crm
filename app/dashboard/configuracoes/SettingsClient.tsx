@@ -32,7 +32,10 @@ export default function SettingsClient({ userEmail, userName }: Props) {
       try {
         // Buscar workspace do usuário para obter slug
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          console.log('[WA Status] No user found');
+          return;
+        }
 
         const { data: workspace } = await supabase
           .from('workspaces')
@@ -41,16 +44,24 @@ export default function SettingsClient({ userEmail, userName }: Props) {
           .limit(1)
           .single();
 
-        if (!workspace) return;
+        if (!workspace) {
+          console.log('[WA Status] No workspace found');
+          return;
+        }
 
+        console.log('[WA Status] Checking slug:', workspace.slug);
         const res = await authenticatedFetch(`/api/whatsapp/status?slug=${workspace.slug}`);
         const data = await res.json();
+        console.log('[WA Status] Response:', res.status, JSON.stringify(data));
         
         if (res.ok && data.success && data.state === 'open') {
           setWhatsappState('open');
+          console.log('[WA Status] ✅ WhatsApp is OPEN');
+        } else {
+          console.log('[WA Status] ❌ WhatsApp not open. state:', data.state);
         }
       } catch (err) {
-        console.error('Erro ao checar WhatsApp:', err);
+        console.error('[WA Status] Error:', err);
       }
     };
 
