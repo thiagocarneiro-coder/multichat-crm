@@ -199,13 +199,11 @@ export async function POST(request: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
           body: JSON.stringify({
-            webhook: {
-              enabled: true,
-              url: WEBHOOK_URL,
-              webhookByEvents: false,
-              events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
-              headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
-            }
+            enabled: true,
+            url: WEBHOOK_URL,
+            webhookByEvents: false,
+            events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
+            headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
           })
         });
         console.log(`[WhatsApp] 🔗 Webhook configurado: ${WEBHOOK_URL}`);
