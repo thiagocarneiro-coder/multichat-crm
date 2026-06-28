@@ -101,7 +101,9 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         number: phone,
-        text: message,
+        textMessage: {
+          text: message
+        }
       }),
     });
 
