@@ -62,12 +62,23 @@ export async function POST(request: Request) {
       if (listRes.ok) {
         const instances = await listRes.json();
         const workspaceInstances = instances
-          .filter((inst: any) => inst.name.startsWith(`${workspace.slug}-`))
-          .filter((inst: any) => inst.connectionStatus === 'open')
-          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          .filter((inst: any) => {
+            const name = inst?.instance?.instanceName || inst?.name || '';
+            return name.startsWith(`${workspace.slug}-`);
+          })
+          .filter((inst: any) => {
+            const status = inst?.instance?.status || inst?.connectionStatus || '';
+            return status === 'open';
+          })
+          .sort((a: any, b: any) => {
+            const dateA = a?.instance?.createdAt || a?.createdAt || '';
+            const dateB = b?.instance?.createdAt || b?.createdAt || '';
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+          });
 
         if (workspaceInstances.length > 0) {
-          instanceName = workspaceInstances[0].name;
+          const latest = workspaceInstances[0];
+          instanceName = latest?.instance?.instanceName || latest?.name || null;
         }
       }
     } catch (err) {
