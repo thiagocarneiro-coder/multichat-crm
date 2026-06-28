@@ -38,23 +38,45 @@ export default function DashboardPage() {
   const [agents, setAgents] = useState<Profile[]>([]);
   const [messagesTodayCount, setMessagesTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [debugError, setDebugError] = useState<string | null>(null);
+  const [debugUser, setDebugUser] = useState<any>(null);
 
   // Carregar dados
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          setDebugError('User Auth Error: ' + userError.message);
+          setLoading(false);
+          return;
+        }
+        if (!user) {
+          setDebugError('No user logged in on auth client.');
+          setLoading(false);
+          return;
+        }
+        setDebugUser(user);
 
         // Buscar perfil
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (!profile) return;
+        if (profileError) {
+          setDebugError('Profile query error: ' + profileError.message + ' (Code: ' + (profileError.code || 'none') + ')');
+          setLoading(false);
+          return;
+        }
+
+        if (!profile) {
+          setDebugError('Profile not found in database for user ID: ' + user.id);
+          setLoading(false);
+          return;
+        }
         setCurrentUserProfile(profile as Profile);
 
         const workspaceId = profile.workspace_id;
@@ -201,6 +223,14 @@ export default function DashboardPage() {
 
   return (
     <div className="py-8 px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+      {debugError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 font-mono text-xs">
+          <p className="font-bold">⚠️ DIAGNÓSTICO DE ERRO:</p>
+          <p>{debugError}</p>
+          {debugUser && <p className="mt-1">User ID: {debugUser.id} | Email: {debugUser.email}</p>}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
