@@ -10,7 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase';
  */
 export async function POST(request: Request) {
   try {
-    const { phone, message, contactId } = await request.json();
+    const { phone, message, contactId, senderId } = await request.json();
 
     if (!phone || !message || !contactId) {
       return NextResponse.json(
@@ -111,6 +111,7 @@ export async function POST(request: Request) {
         content: message,
         role: 'assistant',
         direction: 'outbound',
+        sender_id: senderId || null,
       });
 
     if (msgError) {
