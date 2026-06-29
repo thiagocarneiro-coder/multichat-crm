@@ -93,7 +93,9 @@ export async function POST(request: Request) {
     }
 
     // 3. Enviar mensagem via Evolution API
-    const sendRes = await fetch(`${API_URL}/message/sendText/${instanceName}`, {
+    // v2.3.x usa { number, text } | v1.8.x usa { number, textMessage: { text } }
+    // Tentamos v2 primeiro, fallback v1
+    let sendRes = await fetch(`${API_URL}/message/sendText/${instanceName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,11 +103,24 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         number: phone,
-        textMessage: {
-          text: message
-        }
+        text: message
       }),
     });
+
+    if (!sendRes.ok) {
+      // Fallback v1.8.x
+      sendRes = await fetch(`${API_URL}/message/sendText/${instanceName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': API_KEY,
+        },
+        body: JSON.stringify({
+          number: phone,
+          textMessage: { text: message }
+        }),
+      });
+    }
 
     if (!sendRes.ok) {
       const errorText = await sendRes.text();
