@@ -92,7 +92,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Enviar mensagem via Evolution API
+    // 3. Buscar nome do atendente para prefixar na mensagem do WhatsApp
+    let whatsappMessage = message;
+    if (senderId) {
+      const { data: senderProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', senderId)
+        .single();
+
+      if (senderProfile?.full_name) {
+        // Prefixar com nome em negrito (markdown do WhatsApp)
+        whatsappMessage = `*${senderProfile.full_name}:*\n${message}`;
+      }
+    }
+
+    // 4. Enviar mensagem via Evolution API
     // v2.3.x usa { number, text } | v1.8.x usa { number, textMessage: { text } }
     // Tentamos v2 primeiro, fallback v1
     let sendRes = await fetch(`${API_URL}/message/sendText/${instanceName}`, {
@@ -103,7 +118,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         number: phone,
-        text: message
+        text: whatsappMessage
       }),
     });
 
@@ -117,7 +132,7 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           number: phone,
-          textMessage: { text: message }
+          textMessage: { text: whatsappMessage }
         }),
       });
     }
