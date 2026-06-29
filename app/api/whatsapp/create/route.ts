@@ -195,17 +195,40 @@ export async function POST(request: Request) {
 
     if (WEBHOOK_URL) {
       try {
-        await fetch(`${API_URL}/webhook/set/${instanceName}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
-          body: JSON.stringify({
+        // v2.3.x requer formato aninhado: { webhook: { ... } }
+        // v1.8.x usa formato plano: { enabled, url, ... }
+        // Tentamos v2 primeiro, fallback para v1
+        const webhookPayloadV2 = {
+          webhook: {
             enabled: true,
             url: WEBHOOK_URL,
             webhookByEvents: false,
             events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
-            headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
-          })
+            ...(WEBHOOK_SECRET ? { headers: { 'x-webhook-secret': WEBHOOK_SECRET } } : {})
+          }
+        };
+
+        const whRes = await fetch(`${API_URL}/webhook/set/${instanceName}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
+          body: JSON.stringify(webhookPayloadV2)
         });
+
+        if (!whRes.ok) {
+          // Fallback v1.8.x formato plano
+          await fetch(`${API_URL}/webhook/set/${instanceName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
+            body: JSON.stringify({
+              enabled: true,
+              url: WEBHOOK_URL,
+              webhookByEvents: false,
+              events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
+              headers: WEBHOOK_SECRET ? { 'x-webhook-secret': WEBHOOK_SECRET } : {}
+            })
+          });
+        }
+
         console.log(`[WhatsApp] 🔗 Webhook configurado: ${WEBHOOK_URL}`);
       } catch (e) {
         console.log('[WhatsApp] ⚠️ Erro ao configurar webhook (não bloqueante):', e);

@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       const remoteJid = messageData.key.remoteJid || '';
       fromMe = messageData.key.fromMe || false;
       pushName = messageData.pushName || body?.data?.pushName || 'Desconhecido';
-      phone_number = remoteJid.split('@')[0];
+      // Preservar o @lid para contas ocultas (Click-to-WhatsApp ads)
+      phone_number = remoteJid.includes('@lid') ? remoteJid : remoteJid.split('@')[0];
       message_text = messageData.message?.conversation 
         || messageData.message?.extendedTextMessage?.text 
         || '';
@@ -52,7 +53,8 @@ export async function POST(request: Request) {
       fromMe = msgData?.key?.fromMe || false;
       pushName = body.data?.pushName || 'Desconhecido';
       const remoteJid = msgData?.key?.remoteJid || '';
-      phone_number = remoteJid.split('@')[0];
+      // Preservar o @lid para contas ocultas (Click-to-WhatsApp ads)
+      phone_number = remoteJid.includes('@lid') ? remoteJid : remoteJid.split('@')[0];
       const content = msgData?.message;
       message_text = content?.conversation || content?.extendedTextMessage?.text || '';
     }
