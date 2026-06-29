@@ -210,18 +210,22 @@ BEGIN
     -- Limpa o atendente atribuído (volta para a fila de espera do novo setor)
     NEW.assigned_user_id := NULL;
     
-    INSERT INTO public.transfers (
-      contact_id, 
-      from_department_id, 
-      to_department_id, 
-      transferred_by
-    )
-    VALUES (
-      NEW.id, 
-      OLD.department_id, 
-      NEW.department_id, 
-      auth.uid()
-    );
+    -- Só insere log se auth.uid() existir (chamada direta do frontend)
+    -- Chamadas via service role (API) fazem o insert manualmente com transferred_by correto
+    IF auth.uid() IS NOT NULL THEN
+      INSERT INTO public.transfers (
+        contact_id, 
+        from_department_id, 
+        to_department_id, 
+        transferred_by
+      )
+      VALUES (
+        NEW.id, 
+        OLD.department_id, 
+        NEW.department_id, 
+        auth.uid()
+      );
+    END IF;
   END IF;
   RETURN NEW;
 END;

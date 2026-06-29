@@ -32,6 +32,20 @@ export async function PATCH(
       );
     }
 
+    // Se department_id está sendo alterado, precisamos registrar a transferência
+    // O trigger do banco usa auth.uid() que fica NULL com supabaseAdmin,
+    // então fazemos o insert manual aqui
+    let oldDepartmentId: string | null = null;
+    if (updateData.department_id !== undefined) {
+      // Buscar o department_id atual antes de atualizar
+      const { data: currentContact } = await supabaseAdmin
+        .from('contacts')
+        .select('department_id')
+        .eq('id', id)
+        .single();
+      oldDepartmentId = currentContact?.department_id || null;
+    }
+
     updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabaseAdmin
@@ -44,6 +58,17 @@ export async function PATCH(
     if (error) {
       console.error('[Contacts] Erro ao atualizar:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Registrar transferência manualmente (com transferred_by correto)
+    if (updateData.department_id !== undefined && oldDepartmentId !== updateData.department_id) {
+      const transferredBy = body.transferred_by || null;
+      await supabaseAdmin.from('transfers').insert({
+        contact_id: id,
+        from_department_id: oldDepartmentId,
+        to_department_id: updateData.department_id,
+        transferred_by: transferredBy
+      });
     }
 
     return NextResponse.json({ success: true, contact: data }, { status: 200 });

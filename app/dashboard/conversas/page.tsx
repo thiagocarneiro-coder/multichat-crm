@@ -403,7 +403,8 @@ export default function ConversasPage() {
         },
         body: JSON.stringify({ 
           department_id: targetDeptId,
-          assigned_user_id: null // O trigger já faz isso no banco, mas enviamos por clareza
+          assigned_user_id: null,
+          transferred_by: currentUserProfile.id
         }),
       });
 
