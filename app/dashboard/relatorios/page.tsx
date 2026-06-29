@@ -135,9 +135,9 @@ export default function RelatoriosPage() {
         </div>
       ) : (
         <>
-          {/* Mini cards: Tempo médio + Transferências */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center gap-4">
+          {/* Mini card: Tempo médio */}
+          <div className="mb-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center gap-4 max-w-xs">
               <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
@@ -146,15 +146,6 @@ export default function RelatoriosPage() {
                   {avgResponseMin}<span className="text-sm text-slate-400 ml-1">min</span>
                 </p>
                 <p className="text-[11px] text-slate-500">Tempo médio de resposta</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center gap-4">
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                <ArrowRightLeft className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-800">{totalTransfers}</p>
-                <p className="text-[11px] text-slate-500">Transferências no período</p>
               </div>
             </div>
           </div>
@@ -180,7 +171,6 @@ export default function RelatoriosPage() {
                     <th className="px-6 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Setor</th>
                     <th className="px-6 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Atendimentos</th>
                     <th className="px-6 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Msgs Enviadas</th>
-                    <th className="px-6 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">Transf.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -211,11 +201,6 @@ export default function RelatoriosPage() {
                         </td>
                         <td className="px-6 py-3.5 text-center">
                           <span className="text-sm font-bold text-slate-700">{agent.messages_sent}</span>
-                        </td>
-                        <td className="px-6 py-3.5 text-center">
-                          <span className={`text-sm font-bold ${agent.transfers_made > 0 ? 'text-amber-500' : 'text-slate-300'}`}>
-                            {agent.transfers_made}
-                          </span>
                         </td>
                       </tr>
                     );
