@@ -13,15 +13,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MultiChat CRM — Atendimento WhatsApp Inteligente",
-  description: "Plataforma de atendimento e CRM via WhatsApp. Gerencie conversas, organize contatos no pipeline e responda direto pelo navegador.",
-  keywords: ["atendimento whatsapp", "crm whatsapp", "multichat", "pipeline de vendas", "chat whatsapp web"],
+  title: "MultiChat — Atendimento WhatsApp Inteligente",
+  description: "Plataforma de atendimento via WhatsApp. Gerencie conversas, organize contatos e responda direto pelo navegador.",
+  keywords: ["atendimento whatsapp", "multichat", "chat whatsapp web", "plataforma whatsapp"],
   icons: {
     icon: '/icon.svg',
   },
   openGraph: {
-    title: "MultiChat CRM",
-    description: "Atendimento WhatsApp + CRM com pipeline de vendas.",
+    title: "MultiChat",
+    description: "Atendimento WhatsApp inteligente para sua empresa.",
     type: "website",
   },
 };

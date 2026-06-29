@@ -15,6 +15,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // WhatsApp connection state
   const [whatsappState, setWhatsappState] = useState<'open' | 'connecting' | 'close'>('close');
@@ -66,6 +67,17 @@ export default function SettingsClient({ userEmail, userName }: Props) {
     };
 
     checkWhatsAppStatus();
+  }, []);
+
+  // Buscar role do usuário
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (data) setUserRole(data.role);
+    };
+    fetchRole();
   }, []);
 
   const handleUpdateName = async () => {
@@ -194,7 +206,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
     <div className="py-8 px-6 lg:px-8 max-w-3xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Configurações</h1>
-        <p className="mt-1 text-sm text-slate-500">Gerencie sua conta e conexão WhatsApp.</p>
+        <p className="mt-1 text-sm text-slate-500">Gerencie sua conta e preferências.</p>
       </div>
 
       {message && (
@@ -204,7 +216,8 @@ export default function SettingsClient({ userEmail, userName }: Props) {
         </div>
       )}
 
-      {/* WhatsApp Connection */}
+      {/* WhatsApp Connection - só para gerentes */}
+      {userRole === 'gerente' && (
       <div className="bg-white shadow-sm border border-slate-200 rounded-2xl p-6">
         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
           <Smartphone className="w-5 h-5 text-emerald-500" /> Conexão WhatsApp
@@ -261,6 +274,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
           </p>
         </div>
       </div>
+      )}
 
       {/* Perfil */}
       <div className="bg-white shadow-sm border border-slate-200 rounded-2xl p-6">
@@ -280,7 +294,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
             />
           </div>
           <button
@@ -306,7 +320,7 @@ export default function SettingsClient({ userEmail, userName }: Props) {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Mínimo 6 caracteres"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
             />
           </div>
           <button

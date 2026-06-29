@@ -53,7 +53,7 @@ function LoginForm() {
           <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/25">
             <MessageCircle className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">MultiChat CRM</h1>
+          <h1 className="text-2xl font-bold text-white">MultiChat</h1>
           <p className="text-slate-400 text-sm mt-1">Acesse sua conta para gerenciar seus atendimentos</p>
         </div>
 
@@ -123,7 +123,7 @@ function LoginForm() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          © {new Date().getFullYear()} MultiChat CRM. Todos os direitos reservados.
+          © {new Date().getFullYear()} MultiChat. Todos os direitos reservados.
         </p>
       </div>
     </div>

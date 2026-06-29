@@ -81,7 +81,7 @@ export default function Sidebar() {
         <div className="bg-slate-800/50 rounded-xl p-4">
           <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            MultiChat CRM
+            MultiChat
           </p>
           <p className="text-[10px] text-slate-500 mt-1">
             Triagem Multi-Setor WhatsApp

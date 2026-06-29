@@ -86,7 +86,7 @@ function SignupForm() {
             <MessageCircle className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">Criar Conta</h1>
-          <p className="text-slate-400 text-sm mt-1">Comece a usar o MultiChat CRM gratuitamente</p>
+          <p className="text-slate-400 text-sm mt-1">Comece a usar o MultiChat gratuitamente</p>
         </div>
 
         {/* Card */}
@@ -170,7 +170,7 @@ function SignupForm() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          © {new Date().getFullYear()} MultiChat CRM. Todos os direitos reservados.
+          © {new Date().getFullYear()} MultiChat. Todos os direitos reservados.
         </p>
       </div>
     </div>
