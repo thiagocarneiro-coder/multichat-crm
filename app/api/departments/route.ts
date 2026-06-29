@@ -47,3 +47,60 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+/**
+ * POST /api/departments — Criar novo setor
+ */
+export async function POST(request: Request) {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('workspace_id, role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'gerente') {
+      return NextResponse.json({ error: 'Apenas gerentes podem criar setores' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { name, color } = body;
+
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: 'Nome do setor é obrigatório' }, { status: 400 });
+    }
+
+    // Gerar slug a partir do nome
+    const slug = name.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    const { data, error } = await supabaseAdmin
+      .from('departments')
+      .insert({
+        workspace_id: profile.workspace_id,
+        name: name.trim(),
+        slug: slug || `setor-${Date.now()}`,
+        color: color || 'slate'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.message.includes('uq_departments_workspace_slug')) {
+        return NextResponse.json({ error: 'Já existe um setor com esse nome' }, { status: 409 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data, { status: 201 });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

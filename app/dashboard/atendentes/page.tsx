@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Search, Edit2, Trash2, Mail, Shield, UserCheck, Key, Plus, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { Users, UserPlus, Search, Edit2, Trash2, Mail, Shield, UserCheck, Key, Plus, X, Loader2, CheckCircle2, Layers, Palette } from 'lucide-react';
 import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 interface Department {
@@ -42,6 +42,17 @@ export default function AtendentesPage() {
     departmentId: '',
     role: 'atendente'
   });
+
+  // Tab ativa
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'setores'>('usuarios');
+
+  // Estados para CRUD de Setores
+  const [isAddDeptModalOpen, setIsAddDeptModalOpen] = useState(false);
+  const [isEditDeptModalOpen, setIsEditDeptModalOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptColor, setNewDeptColor] = useState('slate');
+  const [deptActionLoading, setDeptActionLoading] = useState(false);
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -192,6 +203,89 @@ export default function AtendentesPage() {
     }
   };
 
+  // ─── CRUD de Setores ───
+
+  const handleAddDept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDeptActionLoading(true);
+    setNotification(null);
+    try {
+      const res = await fetch('/api/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDeptName, color: newDeptColor })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNotification({ type: 'error', message: data.error || 'Erro ao criar setor.' });
+      } else {
+        setNotification({ type: 'success', message: `Setor "${newDeptName}" criado com sucesso!` });
+        setIsAddDeptModalOpen(false);
+        setNewDeptName('');
+        setNewDeptColor('slate');
+        fetchData();
+      }
+    } catch {
+      setNotification({ type: 'error', message: 'Erro de rede.' });
+    } finally {
+      setDeptActionLoading(false);
+    }
+  };
+
+  const handleEditDept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDept) return;
+    setDeptActionLoading(true);
+    setNotification(null);
+    try {
+      const res = await fetch(`/api/departments/${selectedDept.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: selectedDept.name, color: selectedDept.color })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNotification({ type: 'error', message: data.error || 'Erro ao salvar.' });
+      } else {
+        setNotification({ type: 'success', message: 'Setor atualizado!' });
+        setIsEditDeptModalOpen(false);
+        fetchData();
+      }
+    } catch {
+      setNotification({ type: 'error', message: 'Erro de rede.' });
+    } finally {
+      setDeptActionLoading(false);
+    }
+  };
+
+  const handleDeleteDept = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o setor "${name}"? Contatos e atendentes precisam ser movidos antes.`)) return;
+    setNotification(null);
+    try {
+      const res = await fetch(`/api/departments/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        setNotification({ type: 'error', message: data.error || 'Erro ao excluir.' });
+      } else {
+        setNotification({ type: 'success', message: `Setor "${name}" excluído!` });
+        fetchData();
+      }
+    } catch {
+      setNotification({ type: 'error', message: 'Erro de rede.' });
+    }
+  };
+
+  const AVAILABLE_COLORS = [
+    { name: 'slate', label: 'Cinza' },
+    { name: 'blue', label: 'Azul' },
+    { name: 'purple', label: 'Roxo' },
+    { name: 'emerald', label: 'Verde' },
+    { name: 'indigo', label: 'Índigo' },
+    { name: 'amber', label: 'Amarelo' },
+    { name: 'pink', label: 'Rosa' },
+    { name: 'red', label: 'Vermelho' },
+  ];
+
   const filteredAgents = agents.filter(agent => 
     agent.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     agent.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -247,25 +341,61 @@ export default function AtendentesPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <Users className="w-8 h-8 text-emerald-500" />
-            Atendentes e Equipe
+            Usuários e Setores
           </h1>
-          <p className="mt-1 text-sm text-slate-500">Cadastre atendentes, configure credenciais e associe aos setores de atendimento.</p>
+          <p className="mt-1 text-sm text-slate-500">Gerencie sua equipe e os setores de atendimento da empresa.</p>
         </div>
+        <div className="flex items-center gap-2">
+          {activeTab === 'usuarios' ? (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all text-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              Novo Usuário
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsAddDeptModalOpen(true)}
+              className="px-5 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 transition-all text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Setor
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
         <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all text-sm self-start sm:self-auto"
+          onClick={() => setActiveTab('usuarios')}
+          className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+            activeTab === 'usuarios' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
         >
-          <UserPlus className="w-4 h-4" />
-          Novo Atendente
+          <Users className="w-4 h-4" />
+          Usuários
+        </button>
+        <button
+          onClick={() => setActiveTab('setores')}
+          className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${
+            activeTab === 'setores' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          Setores
         </button>
       </div>
 
+      {activeTab === 'usuarios' && (
+      <>
       {/* Caixa de Busca */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm max-w-md flex items-center relative">
         <Search className="w-4 h-4 text-slate-400 absolute left-7 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Buscar atendente por nome ou email..."
+          placeholder="Buscar por nome ou email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -546,6 +676,173 @@ export default function AtendentesPage() {
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
                 >
                   {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      </>
+      )}
+
+      {/* ═══════════════════ TAB: SETORES ═══════════════════ */}
+      {activeTab === 'setores' && (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {departments.map(dept => {
+            const agentCount = agents.filter(a => a.department_id === dept.id).length;
+            const colorClass = getDeptColorClass(dept.color);
+            return (
+              <div key={dept.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-3 h-3 rounded-full bg-${dept.color}-500`} />
+                    <h3 className="font-bold text-slate-800">{dept.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setSelectedDept({ ...dept });
+                        setIsEditDeptModalOpen(true);
+                      }}
+                      className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                      title="Editar setor"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDept(dept.id, dept.name)}
+                      className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                      title="Excluir setor"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${colorClass}`}>{dept.name}</span>
+                  <span className="text-xs text-slate-400">{agentCount} usuário{agentCount !== 1 ? 's' : ''}</span>
+                </div>
+                {agentCount > 0 && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-1">
+                    {agents.filter(a => a.department_id === dept.id).map(a => (
+                      <div key={a.id} className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[9px] font-bold text-slate-600">
+                          {a.full_name[0]}
+                        </div>
+                        {a.full_name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {departments.length === 0 && (
+          <div className="text-center py-16 text-slate-400">
+            <Layers className="w-12 h-12 mx-auto mb-3 text-slate-200" />
+            <p className="text-sm">Nenhum setor cadastrado. Crie o primeiro!</p>
+          </div>
+        )}
+      </>
+      )}
+
+      {/* ─── MODAL: CRIAR SETOR ─── */}
+      {isAddDeptModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative">
+            <button onClick={() => setIsAddDeptModalOpen(false)} className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-violet-500" />
+              Novo Setor
+            </h2>
+            <form onSubmit={handleAddDept} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nome do Setor</label>
+                <input
+                  type="text"
+                  required
+                  value={newDeptName}
+                  onChange={(e) => setNewDeptName(e.target.value)}
+                  placeholder="Ex: Financeiro, RH, Logística..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none text-slate-800"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Cor</label>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_COLORS.map(c => (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => setNewDeptColor(c.name)}
+                      className={`w-8 h-8 rounded-lg bg-${c.name}-500 border-2 transition-all ${
+                        newDeptColor === c.name ? 'border-slate-800 scale-110 shadow-lg' : 'border-transparent hover:scale-105'
+                      }`}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsAddDeptModalOpen(false)} className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl">Cancelar</button>
+                <button type="submit" disabled={deptActionLoading} className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5">
+                  {deptActionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Criar Setor
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: EDITAR SETOR ─── */}
+      {isEditDeptModalOpen && selectedDept && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative">
+            <button onClick={() => setIsEditDeptModalOpen(false)} className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-violet-500" />
+              Editar Setor
+            </h2>
+            <form onSubmit={handleEditDept} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nome do Setor</label>
+                <input
+                  type="text"
+                  required
+                  value={selectedDept.name}
+                  onChange={(e) => setSelectedDept({ ...selectedDept, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none text-slate-800"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Cor</label>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_COLORS.map(c => (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => setSelectedDept({ ...selectedDept, color: c.name })}
+                      className={`w-8 h-8 rounded-lg bg-${c.name}-500 border-2 transition-all ${
+                        selectedDept.color === c.name ? 'border-slate-800 scale-110 shadow-lg' : 'border-transparent hover:scale-105'
+                      }`}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsEditDeptModalOpen(false)} className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl">Cancelar</button>
+                <button type="submit" disabled={deptActionLoading} className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5">
+                  {deptActionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Salvar
                 </button>
               </div>

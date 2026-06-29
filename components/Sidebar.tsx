@@ -36,7 +36,7 @@ export default function Sidebar() {
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
     { name: 'Conversas', href: '/dashboard/conversas', icon: MessageCircle, show: true },
-    { name: 'Atendentes', href: '/dashboard/atendentes', icon: Users, show: role === 'gerente' },
+    { name: 'Equipe', href: '/dashboard/atendentes', icon: Users, show: role === 'gerente' },
     { name: 'Relatórios', href: '/dashboard/relatorios', icon: BarChart3, show: role === 'gerente' },
     { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings, show: true },
   ];
