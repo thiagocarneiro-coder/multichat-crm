@@ -47,7 +47,6 @@ export async function POST(request: Request) {
       message_text = messageData.message?.conversation 
         || messageData.message?.extendedTextMessage?.text 
         || '';
-      message_text += `\n\nDEBUG PAYLOAD:\n${JSON.stringify(body, null, 2)}`;
     } else if (body?.event === 'messages.upsert' && body?.data?.message) {
       const msgData = body.data.message;
       fromMe = msgData?.key?.fromMe || false;
@@ -56,7 +55,6 @@ export async function POST(request: Request) {
       phone_number = remoteJid.split('@')[0];
       const content = msgData?.message;
       message_text = content?.conversation || content?.extendedTextMessage?.text || '';
-      message_text += `\n\nDEBUG PAYLOAD:\n${JSON.stringify(body, null, 2)}`;
     }
 
     // ─── Evento de conexão: salvar phone no workspace automaticamente ───
