@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
+get_last_msg.js
+query_db.js
+query_msgs.js
+patch_webhook.js
+scratch_*.js
+docker-compose-v*.yml

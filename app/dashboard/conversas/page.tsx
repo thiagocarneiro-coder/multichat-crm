@@ -51,16 +51,18 @@ interface Transfer {
 
 interface TimelineItem {
   id: string;
-  type: 'message' | 'transfer';
+  type: 'message' | 'transfer' | 'claim';
   created_at: string;
   // Message fields
-  role?: 'user' | 'assistant';
+  role?: 'user' | 'assistant' | 'system';
   content?: string;
   sender_id?: string | null;
   // Transfer fields
   from_department_id?: string | null;
   to_department_id?: string | null;
   transferred_by?: string | null;
+  // Claim fields
+  claimed_by?: string | null;
 }
 
 export default function ConversasPage() {
@@ -242,14 +244,25 @@ export default function ConversasPage() {
       const items: TimelineItem[] = [];
 
       (messages || []).forEach((m: Message) => {
-        items.push({
-          id: m.id,
-          type: 'message' as const,
-          created_at: m.created_at,
-          role: m.role,
-          content: m.content,
-          sender_id: m.sender_id
-        });
+        // Detectar mensagens de sistema (claim)
+        if (m.content.startsWith('__CLAIM__')) {
+          const claimedById = m.content.replace('__CLAIM__', '');
+          items.push({
+            id: m.id,
+            type: 'claim' as const,
+            created_at: m.created_at,
+            claimed_by: claimedById
+          });
+        } else {
+          items.push({
+            id: m.id,
+            type: 'message' as const,
+            created_at: m.created_at,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            sender_id: m.sender_id
+          });
+        }
       });
 
       (transfers || []).forEach((t: Transfer) => {
@@ -349,8 +362,25 @@ export default function ConversasPage() {
       if (error) {
         alert('Erro ao assumir conversa: ' + error.message);
       } else {
+        // Inserir mensagem de sistema na timeline (evento de claim)
+        await supabase.from('messages').insert({
+          contact_id: selectedContact.id,
+          content: `__CLAIM__${currentUserProfile.id}`,
+          role: 'system',
+          direction: 'outbound',
+          sender_id: currentUserProfile.id
+        });
+
         // Atualizar localmente
         setSelectedContact(prev => prev ? { ...prev, assigned_user_id: currentUserProfile.id } : null);
+        
+        // Adicionar evento de claim na timeline local
+        setTimelineItems(prev => [...prev, {
+          id: `claim-${Date.now()}`,
+          type: 'claim' as const,
+          created_at: new Date().toISOString(),
+          claimed_by: currentUserProfile.id
+        }]);
       }
     } catch (err) {
       console.error(err);
@@ -759,6 +789,21 @@ export default function ConversasPage() {
                   );
                 }
 
+                if (item.type === 'claim') {
+                  // Render do Log de Atendimento Assumido
+                  const claimedByName = agentsMap.get(item.claimed_by || '')?.full_name || 'Atendente';
+                  
+                  return (
+                    <div key={item.id} className="flex justify-center py-2">
+                      <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-[11px] font-medium px-4 py-2 rounded-xl flex items-center gap-2 max-w-md shadow-sm">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                        <span>
+                          <strong>{claimedByName}</strong> assumiu o atendimento às {formatTime(item.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
                 // Render do Balão de Mensagem
                 const isAgent = item.role === 'assistant';
                 const msgSender = item.sender_id ? agentsMap.get(item.sender_id) : null;

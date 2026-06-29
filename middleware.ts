@@ -15,6 +15,7 @@ const BEARER_PROTECTED_ROUTES = [
   '/api/whatsapp/create',
   '/api/whatsapp/send',
   '/api/contacts',
+  '/api/reports',
 ];
 
 // Rotas sempre públicas (sem auth nenhuma)

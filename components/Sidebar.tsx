@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageCircle, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, MessageCircle, Users, Settings, BarChart3 } from 'lucide-react';
 import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 export default function Sidebar() {
@@ -37,6 +37,7 @@ export default function Sidebar() {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
     { name: 'Conversas', href: '/dashboard/conversas', icon: MessageCircle, show: true },
     { name: 'Atendentes', href: '/dashboard/atendentes', icon: Users, show: role === 'gerente' },
+    { name: 'Relatórios', href: '/dashboard/relatorios', icon: BarChart3, show: role === 'gerente' },
     { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings, show: true },
   ];
 

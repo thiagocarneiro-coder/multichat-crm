@@ -27,7 +27,7 @@ const API_KEY = env.EVOLUTION_GLOBAL_KEY;
 const instanceName = 'multichat-1782314821371';
 
 async function testSend() {
-  const targetNumber = '188879927783677'; // O número retornado no webhook do cliente
+  const targetNumber = '5531993184132'; // O número real do cliente
   const text = 'Olá! Teste de envio de mensagem diretamente pela Evolution API.';
 
   console.log(`Disparando envio para: ${targetNumber} via instância ${instanceName}`);
@@ -42,7 +42,9 @@ async function testSend() {
       },
       body: JSON.stringify({
         number: targetNumber,
-        text: text
+        textMessage: {
+          text: text
+        }
       })
     });
 
