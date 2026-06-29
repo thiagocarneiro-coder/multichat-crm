@@ -896,7 +896,7 @@ export default function ConversasPage() {
                   onKeyDown={handleKeyDown}
                   placeholder={selectedContact.assigned_user_id === null ? "Digite uma resposta para assumir o chat automaticamente..." : "Digite sua mensagem..."}
                   rows={1}
-                  className="flex-1 px-4 py-3 bg-slate-100 border border-transparent rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 focus:bg-white transition-all outline-none resize-none max-h-32"
+                  className="flex-1 px-4 py-3 bg-slate-100 border border-transparent rounded-2xl text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 focus:bg-white transition-all outline-none resize-none max-h-32"
                   style={{ minHeight: '44px' }}
                 />
                 <button
