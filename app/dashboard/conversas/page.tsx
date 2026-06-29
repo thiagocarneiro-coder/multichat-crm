@@ -298,13 +298,19 @@ export default function ConversasPage() {
         filter: `contact_id=eq.${selectedContact.id}` 
       }, (payload) => {
         const newMsg = payload.new as Message;
+        
+        // Filtrar mensagens de sistema (__CLAIM__) — já são renderizadas como eventos
+        if (newMsg.content.startsWith('__CLAIM__')) {
+          return; // Ignorar — o evento de claim já foi adicionado localmente
+        }
+        
         setTimelineItems(prev => [
           ...prev, 
           {
             id: newMsg.id,
             type: 'message' as const,
             created_at: newMsg.created_at,
-            role: newMsg.role,
+            role: newMsg.role as 'user' | 'assistant',
             content: newMsg.content,
             sender_id: newMsg.sender_id
           }
