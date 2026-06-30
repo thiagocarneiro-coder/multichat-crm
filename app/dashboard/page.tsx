@@ -207,7 +207,7 @@ export default function DashboardPage() {
   const agentsMap = new Map(agents.map(a => [a.id, a]));
 
   const activeContacts = contacts.filter(c => c.status !== 'closed');
-  const totalContacts = activeContacts.length;
+  const totalInService = activeContacts.filter(c => c.assigned_user_id !== null).length;
   const newToday = activeContacts.filter(c => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -258,8 +258,8 @@ export default function DashboardPage() {
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Conversas</p>
-                  <p className="text-3xl font-black text-slate-900 mt-1">{totalContacts}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversas Ativas</p>
+                  <p className="text-3xl font-black text-slate-900 mt-1">{totalInService}</p>
                 </div>
                 <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
                   <Users className="w-5 h-5" />
