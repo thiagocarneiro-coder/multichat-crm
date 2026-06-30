@@ -205,15 +205,15 @@ export default function DashboardPage() {
   const departmentsMap = new Map(departments.map(d => [d.id, d]));
   const agentsMap = new Map(agents.map(a => [a.id, a]));
 
-  // Métricas de acordo com o papel
-  const totalContacts = contacts.length;
-  const newToday = contacts.filter(c => {
+  const activeContacts = contacts.filter(c => c.status !== 'closed');
+  const totalContacts = activeContacts.length;
+  const newToday = activeContacts.filter(c => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return new Date(c.created_at) >= today;
   }).length;
 
-  const totalWaitingGlobal = contacts.filter(c => c.assigned_user_id === null).length;
+  const totalWaitingGlobal = activeContacts.filter(c => c.assigned_user_id === null).length;
 
   // Filtragem e métricas específicas se for Atendente
   const myDeptId = currentUserProfile?.department_id || '';
@@ -360,8 +360,8 @@ export default function DashboardPage() {
             </h3>
             <div className="space-y-4">
               {departments.map(dept => {
-                const totalInDept = contacts.filter(c => c.department_id === dept.id).length;
-                const unassignedInDept = contacts.filter(c => c.department_id === dept.id && c.assigned_user_id === null).length;
+                const totalInDept = contacts.filter(c => c.department_id === dept.id && c.status !== 'closed').length;
+                const unassignedInDept = contacts.filter(c => c.department_id === dept.id && c.assigned_user_id === null && c.status !== 'closed').length;
                 const deptColor = getDeptColorClass(dept.color);
 
                 return (
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                       </td>
                     </tr>
                   ) : (
-                    contacts.slice(0, 10).map((contact) => {
+                    contacts.filter(c => c.status !== 'closed').slice(0, 10).map((contact) => {
                       const dept = departmentsMap.get(contact.department_id);
                       const agent = agentsMap.get(contact.assigned_user_id || '');
                       const deptColor = dept ? getDeptColorClass(dept.color) : 'bg-slate-100 text-slate-700';
