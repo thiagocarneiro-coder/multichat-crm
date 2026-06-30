@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, User, Bot, Clock, MessageCircle, Send, ChevronDown, Check, ArrowRight, UserCheck, Inbox, Shield } from 'lucide-react';
+import { Search, User, Bot, Clock, MessageCircle, Send, ChevronDown, Check, ArrowRight, UserCheck, Inbox, Shield, CheckCircle2 } from 'lucide-react';
 import { supabaseClient as supabase } from '@/lib/supabase-client';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -51,7 +51,7 @@ interface Transfer {
 
 interface TimelineItem {
   id: string;
-  type: 'message' | 'transfer' | 'claim';
+  type: 'message' | 'transfer' | 'claim' | 'closed';
   created_at: string;
   // Message fields
   role?: 'user' | 'assistant' | 'system';
@@ -63,6 +63,8 @@ interface TimelineItem {
   transferred_by?: string | null;
   // Claim fields
   claimed_by?: string | null;
+  // Closed fields
+  closed_by?: string | null;
 }
 
 export default function ConversasPage() {
@@ -253,6 +255,14 @@ export default function ConversasPage() {
             created_at: m.created_at,
             claimed_by: claimedById
           });
+        } else if (m.content.startsWith('__CLOSED__')) {
+          const closedById = m.content.replace('__CLOSED__', '');
+          items.push({
+            id: m.id,
+            type: 'closed' as const,
+            created_at: m.created_at,
+            closed_by: closedById
+          });
         } else {
           items.push({
             id: m.id,
@@ -299,9 +309,9 @@ export default function ConversasPage() {
       }, (payload) => {
         const newMsg = payload.new as Message;
         
-        // Filtrar mensagens de sistema (__CLAIM__) — já são renderizadas como eventos
-        if (newMsg.content.startsWith('__CLAIM__')) {
-          return; // Ignorar — o evento de claim já foi adicionado localmente
+        // Filtrar mensagens de sistema (__CLAIM__, __CLOSED__) — já são renderizadas como eventos
+        if (newMsg.content.startsWith('__CLAIM__') || newMsg.content.startsWith('__CLOSED__')) {
+          return; // Ignorar — o evento já foi adicionado localmente
         }
         
         setTimelineItems(prev => [
@@ -392,6 +402,50 @@ export default function ConversasPage() {
       console.error(err);
     } finally {
       setClaiming(false);
+    }
+  };
+
+  // 4b. Finalizar atendimento
+  const handleCloseContact = async () => {
+    if (!selectedContact || !currentUserProfile) return;
+    if (!confirm('Finalizar este atendimento? O contato voltará para a fila de espera.')) return;
+
+    try {
+      // Desatribuir o atendente
+      const { error } = await supabase
+        .from('contacts')
+        .update({ 
+          assigned_user_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedContact.id);
+
+      if (error) {
+        alert('Erro ao finalizar: ' + error.message);
+        return;
+      }
+
+      // Inserir mensagem de sistema na timeline
+      await supabase.from('messages').insert({
+        contact_id: selectedContact.id,
+        content: `__CLOSED__${currentUserProfile.id}`,
+        role: 'system',
+        direction: 'outbound',
+        sender_id: currentUserProfile.id
+      });
+
+      // Atualizar localmente
+      setSelectedContact(prev => prev ? { ...prev, assigned_user_id: null } : null);
+      
+      // Adicionar evento na timeline local
+      setTimelineItems(prev => [...prev, {
+        id: `closed-${Date.now()}`,
+        type: 'closed' as const,
+        created_at: new Date().toISOString(),
+        closed_by: currentUserProfile.id
+      }]);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -755,6 +809,17 @@ export default function ConversasPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Botão Finalizar */}
+                {selectedContact.assigned_user_id && (
+                  <button
+                    onClick={handleCloseContact}
+                    className="text-xs font-bold px-3 py-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Finalizado
+                  </button>
+                )}
               </div>
             </div>
 
@@ -806,6 +871,22 @@ export default function ConversasPage() {
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                         <span>
                           <strong>{claimedByName}</strong> assumiu o atendimento às {formatTime(item.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.type === 'closed') {
+                  // Render do Log de Atendimento Finalizado
+                  const closedByName = agentsMap.get(item.closed_by || '')?.full_name || 'Atendente';
+                  
+                  return (
+                    <div key={item.id} className="flex justify-center py-2">
+                      <div className="bg-slate-50 border border-slate-200 text-slate-600 text-[11px] font-medium px-4 py-2 rounded-xl flex items-center gap-2 max-w-md shadow-sm">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>
+                          <strong>{closedByName}</strong> finalizou o atendimento às {formatTime(item.created_at)}
                         </span>
                       </div>
                     </div>
