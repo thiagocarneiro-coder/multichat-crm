@@ -16,7 +16,7 @@ export async function PATCH(
     const body = await request.json();
 
     // Campos permitidos para atualização
-    const allowedFields = ['pipeline_stage', 'name', 'notes', 'tags', 'email', 'company', 'department_id', 'assigned_user_id'];
+    const allowedFields = ['pipeline_stage', 'name', 'notes', 'tags', 'email', 'company', 'department_id', 'assigned_user_id', 'status'];
     const updateData: Record<string, any> = {};
 
     for (const field of allowedFields) {

@@ -29,6 +29,7 @@ interface Contact {
   updated_at: string;
   department_id: string;
   assigned_user_id: string | null;
+  status: 'open' | 'closed';
 }
 
 interface Message {
@@ -88,7 +89,7 @@ export default function ConversasPage() {
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [showTransferDropdown, setShowTransferDropdown] = useState(false);
-  const [activeTab, setActiveTab] = useState<'meus' | 'fila'>('meus'); // Para Atendentes
+  const [activeTab, setActiveTab] = useState<'meus' | 'fila' | 'finalizados'>('meus');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -411,11 +412,12 @@ export default function ConversasPage() {
     if (!confirm('Finalizar este atendimento? O contato voltará para a fila de espera.')) return;
 
     try {
-      // Desatribuir o atendente
+      // Desatribuir o atendente e marcar como closed
       const { error } = await supabase
         .from('contacts')
         .update({ 
           assigned_user_id: null,
+          status: 'closed',
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedContact.id);
@@ -435,7 +437,7 @@ export default function ConversasPage() {
       });
 
       // Atualizar localmente
-      setSelectedContact(prev => prev ? { ...prev, assigned_user_id: null } : null);
+      setSelectedContact(prev => prev ? { ...prev, assigned_user_id: null, status: 'closed' as const } : null);
       
       // Adicionar evento na timeline local
       setTimelineItems(prev => [...prev, {
@@ -464,6 +466,7 @@ export default function ConversasPage() {
         body: JSON.stringify({ 
           department_id: targetDeptId,
           assigned_user_id: null,
+          status: 'open',
           transferred_by: currentUserProfile.id
         }),
       });
@@ -568,6 +571,9 @@ export default function ConversasPage() {
 
     // 2. Filtro de acordo com o Perfil/Papel do Usuário
     if (currentUserProfile?.role === 'atendente') {
+      // Atendente nunca vê finalizados
+      if (contact.status === 'closed') return false;
+      
       // O Atendente só pode ver contatos que estão no seu departamento
       const matchesDept = contact.department_id === currentUserProfile.department_id;
       if (!matchesDept) return false;
@@ -579,7 +585,15 @@ export default function ConversasPage() {
         return contact.assigned_user_id === null;
       }
     } else {
-      // O Gerente pode visualizar tudo e aplicar filtros de setor
+      // Gerente
+      if (activeTab === 'finalizados') {
+        return contact.status === 'closed';
+      }
+      
+      // Nas outras abas do gerente, excluir finalizados
+      if (contact.status === 'closed') return false;
+      
+      // Filtro de setor
       if (filterDepartmentId !== 'TODOS') {
         return contact.department_id === filterDepartmentId;
       }
@@ -588,8 +602,9 @@ export default function ConversasPage() {
   });
 
   // Métricas rápidas para exibição das abas (para Atendentes)
-  const countMyChats = contacts.filter(c => c.department_id === currentUserProfile?.department_id && c.assigned_user_id === currentUserProfile?.id).length;
-  const countQueueChats = contacts.filter(c => c.department_id === currentUserProfile?.department_id && c.assigned_user_id === null).length;
+  const countMyChats = contacts.filter(c => c.status !== 'closed' && c.department_id === currentUserProfile?.department_id && c.assigned_user_id === currentUserProfile?.id).length;
+  const countQueueChats = contacts.filter(c => c.status !== 'closed' && c.department_id === currentUserProfile?.department_id && c.assigned_user_id === null).length;
+  const countFinalizados = contacts.filter(c => c.status === 'closed').length;
 
   const formatTime = (isoString?: string) => {
     if (!isoString) return '';
@@ -629,23 +644,46 @@ export default function ConversasPage() {
             )}
           </div>
           
-          {/* Se for Gerente: Dropdown para filtrar por Setor */}
+          {/* Se for Gerente: Abas Ativos/Finalizados + Filtro de Setor */}
           {currentUserProfile?.role === 'gerente' ? (
-            <div className="relative">
-              <select
-                value={filterDepartmentId}
-                onChange={(e) => setFilterDepartmentId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
-              >
-                <option value="TODOS">📁 Todos os Setores</option>
-                {departments.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <>
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setActiveTab('meus')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab !== 'finalizados' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <Inbox className="w-3.5 h-3.5" />
+                  Ativos
+                </button>
+                <button
+                  onClick={() => setActiveTab('finalizados')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'finalizados' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Finalizados
+                  {countFinalizados > 0 && (
+                    <span className="bg-slate-500 text-white text-[10px] font-extrabold px-1.5 py-0.1 rounded-full">{countFinalizados}</span>
+                  )}
+                </button>
+              </div>
+              {activeTab !== 'finalizados' && (
+                <div className="relative">
+                  <select
+                    value={filterDepartmentId}
+                    onChange={(e) => setFilterDepartmentId(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
+                  >
+                    <option value="TODOS">📁 Todos os Setores</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              )}
+            </>
           ) : (
             /* Se for Atendente: Abas "Meus Chats" vs "Fila de Espera" */
             <div className="flex bg-slate-100 p-1 rounded-xl">

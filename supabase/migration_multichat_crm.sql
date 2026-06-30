@@ -76,12 +76,14 @@ CREATE TABLE IF NOT EXISTS public.contacts (
 -- Garante que as colunas novas existam caso a tabela contacts já exista
 ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES public.departments(id) ON DELETE SET NULL;
 ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS assigned_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open';
 
 CREATE INDEX IF NOT EXISTS idx_contacts_workspace ON public.contacts(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_phone ON public.contacts(phone);
 CREATE INDEX IF NOT EXISTS idx_contacts_department ON public.contacts(department_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_assigned ON public.contacts(assigned_user_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_updated ON public.contacts(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contacts_status ON public.contacts(status);
 
 -- =============================================================================
 -- 5. TABELA: messages (Mensagens com associação de quem enviou)
