@@ -286,6 +286,18 @@ export default function AtendentesPage() {
     { name: 'red', label: 'Vermelho' },
   ];
 
+  // Classes estáticas para Tailwind não purgar (classes dinâmicas como bg-${name}-500 não funcionam)
+  const colorBgClass: Record<string, string> = {
+    slate: 'bg-slate-500',
+    blue: 'bg-blue-500',
+    purple: 'bg-purple-500',
+    emerald: 'bg-emerald-500',
+    indigo: 'bg-indigo-500',
+    amber: 'bg-amber-500',
+    pink: 'bg-pink-500',
+    red: 'bg-red-500',
+  };
+
   const filteredAgents = agents.filter(agent => 
     agent.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     agent.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -398,7 +410,7 @@ export default function AtendentesPage() {
           placeholder="Buscar por nome ou email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 outline-none"
         />
       </div>
 
@@ -781,7 +793,7 @@ export default function AtendentesPage() {
                       key={c.name}
                       type="button"
                       onClick={() => setNewDeptColor(c.name)}
-                      className={`w-8 h-8 rounded-lg bg-${c.name}-500 border-2 transition-all ${
+                      className={`w-8 h-8 rounded-lg ${colorBgClass[c.name] || 'bg-slate-500'} border-2 transition-all ${
                         newDeptColor === c.name ? 'border-slate-800 scale-110 shadow-lg' : 'border-transparent hover:scale-105'
                       }`}
                       title={c.label}
@@ -831,7 +843,7 @@ export default function AtendentesPage() {
                       key={c.name}
                       type="button"
                       onClick={() => setSelectedDept({ ...selectedDept, color: c.name })}
-                      className={`w-8 h-8 rounded-lg bg-${c.name}-500 border-2 transition-all ${
+                      className={`w-8 h-8 rounded-lg ${colorBgClass[c.name] || 'bg-slate-500'} border-2 transition-all ${
                         selectedDept.color === c.name ? 'border-slate-800 scale-110 shadow-lg' : 'border-transparent hover:scale-105'
                       }`}
                       title={c.label}
