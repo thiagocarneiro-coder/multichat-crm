@@ -29,6 +29,7 @@ interface Contact {
   created_at: string;
   department_id: string;
   assigned_user_id: string | null;
+  status?: string;
 }
 
 export default function DashboardPage() {
