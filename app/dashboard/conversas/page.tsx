@@ -772,6 +772,10 @@ export default function ConversasPage() {
                         <span className="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                           👤 {assignedAgent.id === currentUserProfile?.id ? 'Você' : assignedAgent.full_name.split(' ')[0]}
                         </span>
+                      ) : contact.status === 'closed' ? (
+                        <span className="text-[9px] bg-slate-50 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                          ✓ Finalizado
+                        </span>
                       ) : (
                         <span className="text-[9px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                           ⏳ Fila
@@ -813,7 +817,7 @@ export default function ConversasPage() {
                   <p className="text-xs font-semibold text-slate-700">
                     {selectedContact.assigned_user_id 
                       ? (agentsMap.get(selectedContact.assigned_user_id)?.full_name || 'Desconhecido') 
-                      : '⏳ Aguardando atendente'}
+                      : selectedContact.status === 'closed' ? '✓ Finalizado' : '⏳ Aguardando atendente'}
                   </p>
                 </div>
 
@@ -981,8 +985,8 @@ export default function ConversasPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Ações de Atendimento (Se estiver Sem Atendente) */}
-            {selectedContact.assigned_user_id === null && (
+            {/* Ações de Atendimento (Se estiver Sem Atendente e NÃO finalizado) */}
+            {selectedContact.assigned_user_id === null && selectedContact.status !== 'closed' && (
               <div className="bg-amber-50/80 border-t border-b border-amber-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span className="flex h-3 w-3 relative">
