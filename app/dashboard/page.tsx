@@ -279,24 +279,11 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Card 3: Mensagens Hoje */}
+            {/* Card 3: Novos Hoje */}
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Msgs Hoje (Global)</p>
-                  <p className="text-3xl font-black text-slate-900 mt-1">{messagesTodayCount}</p>
-                </div>
-                <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
-                  <MessageCircle className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-
-            {/* Card 4: Novos Hoje */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversas Hoje</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Novas Conversas Hoje</p>
                   <p className="text-3xl font-black text-slate-900 mt-1">{newToday}</p>
                 </div>
                 <div className="w-11 h-11 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">

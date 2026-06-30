@@ -41,7 +41,7 @@ export default function Header() {
             </div>
             <div className="hidden sm:block">
               <p className="text-sm font-semibold text-slate-700 leading-tight">{userName}</p>
-              <p className="text-[10px] text-slate-400 capitalize">{userRole}</p>
+              <p className="text-[10px] text-slate-400">{userRole === 'gerente' ? 'Gerência' : 'Atendente'}</p>
             </div>
           </div>
         )}

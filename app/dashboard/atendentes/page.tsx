@@ -319,7 +319,7 @@ export default function AtendentesPage() {
         <Shield className="w-16 h-16 text-red-500 mb-4" />
         <h3 className="text-xl font-bold text-slate-800">Acesso Negado</h3>
         <p className="text-slate-500 mt-2 text-sm">
-          Apenas usuários com privilégios de <strong>Gerente</strong> podem visualizar e configurar a equipe de atendentes.
+          Apenas usuários com privilégios de <strong>Gerência</strong> podem visualizar e configurar a equipe de atendentes.
         </p>
       </div>
     );
@@ -442,7 +442,7 @@ export default function AtendentesPage() {
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${agent.role === 'gerente' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                           {agent.role === 'gerente' ? <Shield className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
-                          {agent.role === 'gerente' ? 'Gerente' : 'Atendente'}
+                          {agent.role === 'gerente' ? 'Gerência' : 'Atendente'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -555,7 +555,7 @@ export default function AtendentesPage() {
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer"
                   >
                     <option value="atendente">Atendente</option>
-                    <option value="gerente">Gerente</option>
+                    <option value="gerente">Gerência</option>
                   </select>
                 </div>
 
@@ -642,7 +642,7 @@ export default function AtendentesPage() {
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer"
                   >
                     <option value="atendente">Atendente</option>
-                    <option value="gerente">Gerente</option>
+                    <option value="gerente">Gerência</option>
                   </select>
                 </div>
 
