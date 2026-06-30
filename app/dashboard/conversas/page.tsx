@@ -723,7 +723,7 @@ export default function ConversasPage() {
           </div>
         </div>
 
-        {/* Lista de Leads */}
+        {/* Lista de Conversas */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
           {filteredContacts.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center justify-center gap-2">
@@ -761,7 +761,7 @@ export default function ConversasPage() {
                     <p className="text-xs text-slate-500 truncate mb-1.5">{contact.last_message || 'Nenhuma mensagem'}</p>
                     
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* Setor do lead */}
+                      {/* Setor da conversa */}
                       {dept && (
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${stageColor}`}>
                           {dept.name}

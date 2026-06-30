@@ -257,7 +257,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Leads</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Conversas</p>
                   <p className="text-3xl font-black text-slate-900 mt-1">{totalContacts}</p>
                 </div>
                 <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
@@ -296,7 +296,7 @@ export default function DashboardPage() {
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Leads Criados Hoje</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversas Hoje</p>
                   <p className="text-3xl font-black text-slate-900 mt-1">{newToday}</p>
                 </div>
                 <div className="w-11 h-11 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">
