@@ -126,9 +126,14 @@ export async function GET(request: Request) {
     );
 
     // Tempo médio de resposta
-    // Agrupar mensagens por contato, encontrar gap entre 1ª inbound e 1ª outbound
+    // Para cada contato: medir gap entre cada mensagem inbound do cliente e a próxima outbound do atendente
+    // Ignorar mensagens de sistema (__CLAIM__, __CLOSED__) e limitar a 60min para evitar outliers
+    const MAX_RESPONSE_MS = 60 * 60 * 1000; // 60 minutos max
+
     const contactMsgGroups = new Map<string, typeof allMessages>();
     for (const msg of allMessages) {
+      // Ignorar mensagens de sistema
+      if (msg.role === 'system') continue;
       const group = contactMsgGroups.get(msg.contact_id) || [];
       group.push(msg);
       contactMsgGroups.set(msg.contact_id, group);
@@ -138,16 +143,19 @@ export async function GET(request: Request) {
     let responseCount = 0;
 
     for (const [, msgs] of contactMsgGroups) {
-      // Para cada sequência: encontrar primeira inbound seguida de primeira outbound
       let lastInboundTime: number | null = null;
       for (const msg of msgs) {
-        if (msg.direction === 'inbound' && !lastInboundTime) {
+        if (msg.direction === 'inbound') {
+          // Cada nova inbound reseta o relógio
           lastInboundTime = new Date(msg.created_at).getTime();
         } else if (msg.direction === 'outbound' && lastInboundTime) {
           const responseTime = new Date(msg.created_at).getTime() - lastInboundTime;
-          totalResponseTime += responseTime;
-          responseCount++;
-          lastInboundTime = null; // Reset para próximo ciclo
+          // Só contar se for razoável (< 60min) — descarta conversas abandonadas
+          if (responseTime > 0 && responseTime <= MAX_RESPONSE_MS) {
+            totalResponseTime += responseTime;
+            responseCount++;
+          }
+          lastInboundTime = null;
         }
       }
     }
